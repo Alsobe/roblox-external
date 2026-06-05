@@ -3,6 +3,7 @@
 #include <cstdio>
 #include "imgui/imgui.h"
 #include "globals.h"
+#include "features/skybox_changer/skybox_changer.h"
 
 static int* s_waiting_key_ptr = nullptr;
 
@@ -99,6 +100,7 @@ void RenderMenu() {
                 ImGui::ColorEdit4("box color", box_esp_color);
             }
             ImGui::Checkbox("health bar", &healthbar);
+            if (healthbar) ImGui::ColorEdit4("health bar color", healthbar_color);
             ImGui::Checkbox("health text", &health_text);
             if (health_text) ImGui::ColorEdit4("health text color", health_text_color);
             ImGui::Checkbox("name", &name);
@@ -116,6 +118,8 @@ void RenderMenu() {
             ImGui::Checkbox("aim viewer", &aimviewer);
             ImGui::Checkbox("china hat", &chinahat);
             if (chinahat) ImGui::ColorEdit4("hat color", chinahat_color);
+            ImGui::Separator();
+            ImGui::Checkbox("3d esp preview", &esp_preview_3d);
             ImGui::EndTabItem();
         }
 
@@ -129,6 +133,14 @@ void RenderMenu() {
                 ImGui::Checkbox("union (2d)", &union_chams);
                 ImGui::Checkbox("outline", &outline_chams);
                 if (outline_chams) ImGui::ColorEdit4("outline color", outline_chams_color);
+            }
+            ImGui::Separator();
+            ImGui::Checkbox("memory mesh chams", &memory_mesh_chams_enabled);
+            if (memory_mesh_chams_enabled) {
+                ImGui::ColorEdit4("mem chams color", memory_mesh_chams_color);
+                ImGui::Checkbox("mem union", &memory_union_chams);
+                ImGui::Checkbox("mem outline", &memory_outline_chams);
+                if (memory_outline_chams) ImGui::ColorEdit4("mem outline color", memory_outline_chams_color);
             }
             ImGui::Separator();
             ImGui::Checkbox("expanded hitbox", &render_expanded_hitbox);
@@ -150,6 +162,32 @@ void RenderMenu() {
             ImGui::Checkbox("flight", &flight_enabled);
             if (flight_enabled) ImGui::SliderFloat("fly speed", &flight_value, 0.0f, 200.0f);
             keybind_button("flight key", flight_keybind);
+            ImGui::Separator();
+            ImGui::Checkbox("korblox", &korblox_enabled);
+            ImGui::Separator();
+            ImGui::Checkbox("rivals skin changer", &rivals_skin_changer_enabled);
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("world")) {
+            ImGui::Checkbox("skybox changer", &skybox_changer_enabled);
+            if (skybox_changer_enabled) {
+                ImGui::Combo("skybox", &skybox_type,
+                    "Piss\0Peach\0Saku\0Purple\0Retro\0Space\0Sea\0Night V2\0"
+                    "Dark\0Anime\0Beach\0Space V2\0Pink\0Rainbow\0Forest\0Night\0"
+                    "Lava\0Rainy\0Green\0Volcanic\0Minecraft\0Lucid\0Nebulous\0");
+                if (skybox_debug_msg[0]) {
+                    ImGui::TextWrapped("%s", skybox_debug_msg);
+                }
+            }
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("blade ball")) {
+            ImGui::Checkbox("auto parry", &blade_ball_auto_parry);
+            ImGui::Checkbox("ball esp", &blade_ball_ball_esp);
+            ImGui::SliderFloat("parry dist", &blade_ball_parry_distance, 4.0f, 30.0f, "%.1f");
+            ImGui::SliderFloat("parry height", &blade_ball_parry_height, 2.0f, 15.0f, "%.1f");
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

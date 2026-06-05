@@ -5,6 +5,8 @@
 #include <mutex>
 
 namespace cache {
+    static constexpr size_t k_esp_primitive_capacity = 64;
+
     struct EspEntity {
         uintptr_t primitives[64]{};
         char part_names[64][64]{};
@@ -17,6 +19,7 @@ namespace cache {
         float root_x = 0, root_y = 0, root_z = 0;
         float health = 0, max_health = 0;
         char name[64]{};
+        char display_name[64]{};
         char tool_name[64]{};
     };
 

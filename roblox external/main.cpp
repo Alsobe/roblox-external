@@ -10,14 +10,20 @@
 
 #include "features/aimbot/aimbot.h"
 #include "features/esp/esp.h"
+#include "features/esp_preview/esp_preview.h"
 #include "features/flight/flight.h"
 #include "features/noclip/noclip.h"
 #include "features/walkspeed/walkspeed.h"
+#include "features/blade_ball/blade_ball.h"
+#include "features/rage/rage.h"
+#include "features/skybox_changer/skybox_changer.h"
+#include "features/rivals_skin_changer/rivals_skin_changer.h"
+#include "features/hitbox_expander/hitbox_expander.h"
+#include "features/memorymeshchams/memorymeshchams.h"
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_win32.h"
 #include "imgui/backends/imgui_impl_dx11.h"
-#include <cstdio>
 
 void RenderMenu();
 void TickKeybinds();
@@ -51,6 +57,9 @@ namespace discord_overlay {
             if (mesh_chams_enabled) features::RenderMeshChams();
             if (render_expanded_hitbox) features::RenderExpandedHitbox();
         }
+        if (memory_mesh_chams_enabled) features::RenderMemoryMeshChams();
+        if (blade_ball_ball_esp) features::RenderBladeBallESP();
+        if (esp_preview_3d) features::RenderESPPreview();
         if (aimbot_enabled) features::RenderFOV();
 
         if (g_state.menu_open) {
@@ -72,6 +81,10 @@ static void FeatureLoop() {
             if (flight_enabled) features::RunFlight();
             if (noclip_enabled) features::RunNoclip();
             if (walkspeed_enabled) features::RunWalkspeed();
+            if (blade_ball_auto_parry) features::RunBladeBallAutoParry();
+            if (skybox_changer_enabled) features::RunSkyboxChanger();
+            if (rivals_skin_changer_enabled) features::RunRivalsSkinChanger();
+            if (hitbox_expander_enabled) features::RunHitboxExpander();
         }
         Sleep(1);
     }
@@ -101,6 +114,8 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
     if (!g_base_address) { printf("couldnt find roblox, exiting\n"); Sleep(3000); return 1; }
 
     cache::StartThread();
+    features::StartMemoryMeshChams();
+    features::rage::Initialize();
     CreateThread(nullptr, 0, [](LPVOID) -> DWORD { FeatureLoop(); return 0; }, nullptr, 0, nullptr);
 
     printf("launching overlay - insert to toggle menu\n");
@@ -108,6 +123,8 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
 
     cache::StopThread();
     features::ShutdownMeshChams();
+    features::ShutdownMemoryMeshChams();
+    features::rage::Shutdown();
     discord_overlay::shutdown();
     if (fp) fclose(fp);
     FreeConsole();
