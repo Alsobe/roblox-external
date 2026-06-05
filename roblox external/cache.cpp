@@ -1,0 +1,256 @@
+#include "cache.h"
+#include "memory.h"
+#include "offsets.h"
+#include "globals.h"
+#include "game.h"
+#include <Windows.h>
+#include <cstring>
+
+struct vec3_t { float x, y, z; };
+
+namespace cache {
+    static std::mutex s_mutex;
+    static std::vector<EspEntity> s_entities;
+    static std::vector<SkeletonEntity> s_skeletons;
+    static LocalPlayerData s_local{};
+    static bool s_phf = false;
+    static bool s_running = false;
+    static HANDLE s_thread = nullptr;
+
+    std::mutex& GetMutex() { return s_mutex; }
+
+    static void scpy(char* dst, const char* src, size_t max) {
+        if (!src) { dst[0] = '\0'; return; }
+        strncpy_s(dst, max, src, _TRUNCATE);
+    }
+
+    static uintptr_t get_prim(instance part) {
+        if (!part.is_valid()) return 0;
+        return read<uintptr_t>(part.address + Offsets::BasePart::Primitive);
+    }
+
+    static bool find_part(instance ch, const char* name, uintptr_t& out) {
+        for (auto& c : ch.get_children()) {
+            if (!c.is_valid()) continue;
+            if (c.get_name() == name) { out = get_prim(c); return true; }
+        }
+        return false;
+    }
+
+    static bool is_r15(instance ch) {
+        for (auto& c : ch.get_children()) {
+            if (!c.is_valid()) continue;
+            auto n = c.get_name();
+            if (n == "UpperTorso" || n == "LowerTorso" ||
+                n == "LeftUpperArm" || n == "RightUpperArm" ||
+                n == "LeftUpperLeg" || n == "RightUpperLeg")
+                return true;
+        }
+        return false;
+    }
+
+    static bool build_skel(instance ch, SkeletonEntity& s, bool phf) {
+        if (!ch.is_valid()) return false;
+        s.is_r15 = is_r15(ch);
+        s.is_phantom_forces = phf;
+        find_part(ch, "Head", s.head);
+        find_part(ch, "UpperTorso", s.upper_torso);
+        find_part(ch, "LowerTorso", s.lower_torso);
+        find_part(ch, "LeftHand", s.left_hand);
+        find_part(ch, "RightHand", s.right_hand);
+        find_part(ch, "LeftFoot", s.left_foot);
+        find_part(ch, "RightFoot", s.right_foot);
+        if (s.is_r15) {
+            find_part(ch, "LeftUpperArm", s.left_upper_arm);
+            find_part(ch, "LeftLowerArm", s.left_lower_arm);
+            find_part(ch, "RightUpperArm", s.right_upper_arm);
+            find_part(ch, "RightLowerArm", s.right_lower_arm);
+            find_part(ch, "LeftUpperLeg", s.left_upper_leg);
+            find_part(ch, "LeftLowerLeg", s.left_lower_leg);
+            find_part(ch, "RightUpperLeg", s.right_upper_leg);
+            find_part(ch, "RightLowerLeg", s.right_lower_leg);
+        }
+        if (phf) {
+            const char* pf[] = { "RightUpperArm", "LeftUpperArm", "RightUpperLeg", "LeftUpperLeg", "Head" };
+            for (int i = 0; i < 5; ++i) find_part(ch, pf[i], s.pf_limbs[i]);
+        }
+        return s.head != 0 || s.upper_torso != 0;
+    }
+
+    static const char* body_parts[] = {
+        "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso",
+        "LeftUpperArm", "LeftLowerArm", "LeftHand",
+        "RightUpperArm", "RightLowerArm", "RightHand",
+        "LeftUpperLeg", "LeftLowerLeg", "LeftFoot",
+        "RightUpperLeg", "RightLowerLeg", "RightFoot",
+        "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"
+    };
+
+    static bool is_body_part(const char* n) {
+        for (auto bp : body_parts)
+            if (strcmp(n, bp) == 0) return true;
+        return false;
+    }
+
+    static std::vector<EspEntity> fetch_entities() {
+        std::vector<EspEntity> result;
+        if (!g_base_address) return result;
+        instance dm = game::ReadDatamodel(g_base_address);
+        if (!dm.is_valid() || dm.get_name().empty()) return result;
+        instance plrs = dm.read_service("Players");
+        if (!plrs.is_valid()) return result;
+        instance local = plrs.local_player();
+
+        for (auto& p : plrs.get_children()) {
+            if (!p.is_valid()) continue;
+            if (local.is_valid() && p.address == local.address) continue;
+            instance ch = p.model_instance();
+            if (!ch.is_valid()) continue;
+
+            EspEntity e{};
+            e.player_address = p.address;
+            scpy(e.name, p.get_name().c_str(), sizeof(e.name));
+            e.user_id = read<uint32_t>(p.address + Offsets::Player::UserId);
+
+            for (auto& c : ch.get_children()) {
+                if (!c.is_valid()) continue;
+                if (c.get_class_name() == "Humanoid") {
+                    e.health = read<float>(c.address + Offsets::Humanoid::Health);
+                    e.max_health = read<float>(c.address + Offsets::Humanoid::MaxHealth);
+                    break;
+                }
+            }
+            for (auto& c : ch.get_children()) {
+                if (!c.is_valid()) continue;
+                auto cn = c.get_class_name();
+                if (cn == "Tool" || cn == "BackpackItem") {
+                    scpy(e.tool_name, c.get_name().c_str(), sizeof(e.tool_name));
+                    break;
+                }
+            }
+            e.is_r15 = is_r15(ch);
+            e.character_address = ch.address;
+
+            for (auto& pt : ch.get_children()) {
+                if (!pt.is_valid() || e.primitive_count >= 64) continue;
+                auto pn = pt.get_name();
+                if (!is_body_part(pn.c_str())) continue;
+                uintptr_t pr = get_prim(pt);
+                if (!is_valid_address(pr)) continue;
+                size_t i = e.primitive_count;
+                scpy(e.part_names[i], pn.c_str(), sizeof(e.part_names[i]));
+                e.primitives[i] = pr;
+                e.part_addresses[i] = pt.address;
+                e.primitive_count++;
+                if (pn == "HumanoidRootPart") {
+                    vec3_t pos{};
+                    if (read_raw(pr + Offsets::Primitive::Position, &pos, sizeof(pos))) {
+                        e.root_x = pos.x; e.root_y = pos.y; e.root_z = pos.z;
+                    }
+                }
+            }
+            if (e.primitive_count > 0) result.push_back(e);
+        }
+        return result;
+    }
+
+    static std::vector<SkeletonEntity> fetch_skeletons() {
+        std::vector<SkeletonEntity> result;
+        if (!g_base_address) return result;
+        instance dm = game::ReadDatamodel(g_base_address);
+        if (!dm.is_valid() || dm.get_name().empty()) return result;
+        instance plrs = dm.read_service("Players");
+        if (!plrs.is_valid()) return result;
+        bool phf = IsPhantomForces();
+        for (auto& p : plrs.get_children()) {
+            if (!p.is_valid()) continue;
+            instance ch = p.model_instance();
+            if (!ch.is_valid()) continue;
+            SkeletonEntity s{};
+            s.player_address = p.address;
+            if (build_skel(ch, s, phf)) result.push_back(s);
+        }
+        return result;
+    }
+
+    static LocalPlayerData fetch_local() {
+        LocalPlayerData lp{};
+        if (!g_base_address) return lp;
+        instance dm = game::ReadDatamodel(g_base_address);
+        if (!dm.is_valid() || dm.get_name().empty()) return lp;
+        instance plrs = dm.read_service("Players");
+        if (!plrs.is_valid()) return lp;
+        instance local = plrs.local_player();
+        if (!local.is_valid()) return lp;
+        instance ch = local.model_instance();
+        if (!ch.is_valid()) return lp;
+        lp.valid = true;
+        for (auto& pt : ch.get_children()) {
+            if (!pt.is_valid()) continue;
+            if (pt.get_name() == "HumanoidRootPart") {
+                lp.hrp_primitive = get_prim(pt);
+                break;
+            }
+        }
+        if (is_valid_address(lp.hrp_primitive)) {
+            vec3_t pos{};
+            if (read_raw(lp.hrp_primitive + Offsets::Primitive::Position, &pos, sizeof(pos))) {
+                lp.x = pos.x; lp.y = pos.y; lp.z = pos.z;
+            }
+        }
+        for (auto& c : ch.get_children()) {
+            if (!c.is_valid()) continue;
+            if (c.get_class_name() == "Humanoid") { lp.humanoid_address = c.address; break; }
+        }
+        return lp;
+    }
+
+    static DWORD WINAPI CacheThread(LPVOID) {
+        while (s_running) {
+            auto new_entities = fetch_entities();
+            auto new_skeletons = fetch_skeletons();
+            auto new_local = fetch_local();
+
+            {
+                std::lock_guard<std::mutex> lock(s_mutex);
+                s_entities = std::move(new_entities);
+                s_skeletons = std::move(new_skeletons);
+                s_local = new_local;
+            }
+            Sleep(16);
+        }
+        return 0;
+    }
+
+    void StartThread() {
+        s_running = true;
+        s_thread = CreateThread(nullptr, 0, CacheThread, nullptr, 0, nullptr);
+    }
+
+    void StopThread() {
+        s_running = false;
+        if (s_thread) { WaitForSingleObject(s_thread, 2000); CloseHandle(s_thread); s_thread = nullptr; }
+    }
+
+    std::vector<EspEntity> GetEspEntities() {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        return s_entities;
+    }
+
+    std::vector<SkeletonEntity> GetSkeletonEntities() {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        return s_skeletons;
+    }
+
+    LocalPlayerData GetLocalPlayer() {
+        std::lock_guard<std::mutex> lock(s_mutex);
+        return s_local;
+    }
+
+    bool IsPhantomForces() {
+        if (!g_base_address) return false;
+        instance dm = game::ReadDatamodel(g_base_address);
+        if (!dm.is_valid()) return false;
+        return game::GetGameName(g_base_address).find("Phantom") != std::string::npos;
+    }
+}
