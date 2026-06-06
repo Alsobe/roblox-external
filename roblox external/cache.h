@@ -15,6 +15,7 @@ namespace cache {
         uintptr_t character_address = 0;
         uintptr_t player_address = 0;
         uint32_t user_id = 0;
+        uintptr_t team_address = 0;
         bool is_r15 = false;
         float root_x = 0, root_y = 0, root_z = 0;
         float health = 0, max_health = 0;
@@ -35,6 +36,7 @@ namespace cache {
         uintptr_t right_upper_leg = 0, right_lower_leg = 0;
         uintptr_t pf_limbs[5]{};
         uintptr_t player_address = 0;
+        uintptr_t team_address = 0;
         bool is_r15 = false;
         bool is_phantom_forces = false;
     };

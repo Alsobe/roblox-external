@@ -33,8 +33,92 @@ namespace discord_overlay
 
     constexpr int TOGGLE_KEY = VK_INSERT;
 
+    inline int VkToImGuiKey(int vk) {
+        if (vk >= '0' && vk <= '9') return vk;
+        if (vk >= 'A' && vk <= 'Z') return vk;
+        if (vk == VK_BACK) return ImGuiKey_Backspace;
+        if (vk == VK_DELETE) return ImGuiKey_Delete;
+        if (vk == VK_RETURN) return ImGuiKey_Enter;
+        if (vk == VK_ESCAPE) return ImGuiKey_Escape;
+        if (vk == VK_TAB) return ImGuiKey_Tab;
+        if (vk == VK_LEFT) return ImGuiKey_LeftArrow;
+        if (vk == VK_RIGHT) return ImGuiKey_RightArrow;
+        if (vk == VK_UP) return ImGuiKey_UpArrow;
+        if (vk == VK_DOWN) return ImGuiKey_DownArrow;
+        if (vk == VK_HOME) return ImGuiKey_Home;
+        if (vk == VK_END) return ImGuiKey_End;
+        if (vk == VK_SPACE) return ImGuiKey_Space;
+        if (vk == VK_DECIMAL) return ImGuiKey_KeypadDecimal;
+        if (vk == VK_OEM_MINUS) return ImGuiKey_Minus;
+        if (vk == VK_OEM_PLUS) return ImGuiKey_Equal;
+        if (vk == VK_OEM_1) return ImGuiKey_Semicolon;
+        if (vk == VK_OEM_7) return ImGuiKey_Apostrophe;
+        if (vk == VK_OEM_COMMA) return ImGuiKey_Comma;
+        if (vk == VK_OEM_PERIOD) return ImGuiKey_Period;
+        if (vk == VK_OEM_2) return ImGuiKey_Slash;
+        if (vk == VK_OEM_4) return ImGuiKey_LeftBracket;
+        if (vk == VK_OEM_5) return ImGuiKey_Backslash;
+        if (vk == VK_OEM_6) return ImGuiKey_RightBracket;
+        if (vk == VK_OEM_3) return ImGuiKey_GraveAccent;
+        if (vk == VK_LSHIFT || vk == VK_RSHIFT) return ImGuiKey_ModShift;
+        return ImGuiKey_None;
+    }
+
+    inline bool IsVkPrintable(int vk) {
+        if (vk >= '0' && vk <= '9') return true;
+        if (vk >= 'A' && vk <= 'Z') return true;
+        if (vk == VK_SPACE) return true;
+        if (vk == VK_OEM_MINUS || vk == VK_OEM_PLUS || vk == VK_OEM_1) return true;
+        if (vk == VK_OEM_7 || vk == VK_OEM_COMMA || vk == VK_OEM_PERIOD) return true;
+        if (vk == VK_OEM_2 || vk == VK_OEM_3 || vk == VK_OEM_4) return true;
+        if (vk == VK_OEM_5 || vk == VK_OEM_6) return true;
+        return false;
+    }
+
+    inline char VkToChar(int vk, bool shift) {
+        if (vk >= '0' && vk <= '9') {
+            if (!shift) return (char)vk;
+            const char* shifted = ")!@#$%^&*(";
+            return shifted[vk - '0'];
+        }
+        if (vk >= 'A' && vk <= 'Z') {
+            char c = (char)(vk + 32);
+            if (shift) c = (char)vk;
+            return c;
+        }
+        if (vk == VK_SPACE) return ' ';
+        if (shift) {
+            if (vk == VK_OEM_MINUS) return '_';
+            if (vk == VK_OEM_PLUS) return '+';
+            if (vk == VK_OEM_1) return ':';
+            if (vk == VK_OEM_7) return '"';
+            if (vk == VK_OEM_COMMA) return '<';
+            if (vk == VK_OEM_PERIOD) return '>';
+            if (vk == VK_OEM_2) return '?';
+            if (vk == VK_OEM_3) return '~';
+            if (vk == VK_OEM_4) return '{';
+            if (vk == VK_OEM_5) return '|';
+            if (vk == VK_OEM_6) return '}';
+        } else {
+            if (vk == VK_OEM_MINUS) return '-';
+            if (vk == VK_OEM_PLUS) return '=';
+            if (vk == VK_OEM_1) return ';';
+            if (vk == VK_OEM_7) return '\'';
+            if (vk == VK_OEM_COMMA) return ',';
+            if (vk == VK_OEM_PERIOD) return '.';
+            if (vk == VK_OEM_2) return '/';
+            if (vk == VK_OEM_3) return '`';
+            if (vk == VK_OEM_4) return '[';
+            if (vk == VK_OEM_5) return '\\';
+            if (vk == VK_OEM_6) return ']';
+        }
+        return 0;
+    }
+
     inline DWORD WINAPI input_thread(LPVOID)
     {
+        static bool s_prev_keys[256] = {};
+
         while (true)
         {
             if (GetAsyncKeyState(TOGGLE_KEY) & 1)
@@ -60,6 +144,35 @@ namespace discord_overlay
 
             io.MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
             io.MouseDown[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+
+            if (g_state.menu_open) {
+                bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+                bool ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+
+                io.AddKeyEvent(ImGuiMod_Ctrl, ctrl);
+                io.AddKeyEvent(ImGuiMod_Shift, shift);
+
+                for (int vk = 1; vk < 256; ++vk) {
+                    if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == TOGGLE_KEY) continue;
+                    bool down = (GetAsyncKeyState(vk) & 0x8000) != 0;
+                    bool was_down = s_prev_keys[vk];
+                    if (down != was_down) {
+                        ImGuiKey imgui_key = (ImGuiKey)VkToImGuiKey(vk);
+                        if (imgui_key != ImGuiKey_None) {
+                            io.AddKeyEvent(imgui_key, down);
+                        }
+                        if (down && !was_down && IsVkPrintable(vk)) {
+                            char c = VkToChar(vk, shift);
+                            if (ctrl && (c == 'c' || c == 'C' || c == 'v' || c == 'V' || c == 'a' || c == 'A' || c == 'x' || c == 'X')) {
+                                // let ctrl shortcuts pass through
+                            } else if (c != 0) {
+                                io.AddInputCharacter((unsigned int)c);
+                            }
+                        }
+                    }
+                    s_prev_keys[vk] = down;
+                }
+            }
 
             Sleep(1);
         }

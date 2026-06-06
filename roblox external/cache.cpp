@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "game.h"
 #include <Windows.h>
+#include <algorithm>
 #include <cstring>
 
 struct vec3_t { float x, y, z; };
@@ -92,6 +93,11 @@ namespace cache {
         return false;
     }
 
+    static uintptr_t get_player_team(instance player) {
+        if (!player.is_valid()) return 0;
+        return read<uintptr_t>(player.address + Offsets::Player::Team);
+    }
+
     static std::vector<EspEntity> fetch_entities() {
         std::vector<EspEntity> result;
         if (!g_base_address) return result;
@@ -100,6 +106,11 @@ namespace cache {
         instance plrs = dm.read_service("Players");
         if (!plrs.is_valid()) return result;
         instance local = plrs.local_player();
+
+        uintptr_t local_team = 0;
+        if (local.is_valid()) {
+            local_team = get_player_team(local);
+        }
 
         for (auto& p : plrs.get_children()) {
             if (!p.is_valid()) continue;
@@ -111,6 +122,7 @@ namespace cache {
             e.player_address = p.address;
             scpy(e.name, p.get_name().c_str(), sizeof(e.name));
             e.user_id = read<uint32_t>(p.address + Offsets::Player::UserId);
+            e.team_address = get_player_team(p);
 
             for (auto& c : ch.get_children()) {
                 if (!c.is_valid()) continue;
@@ -151,6 +163,16 @@ namespace cache {
             }
             if (e.primitive_count > 0) result.push_back(e);
         }
+
+        if (team_check && local_team != 0) {
+            result.erase(
+                std::remove_if(result.begin(), result.end(),
+                    [local_team](const EspEntity& e) {
+                        return e.team_address == local_team;
+                    }),
+                result.end());
+        }
+
         return result;
     }
 
@@ -161,15 +183,34 @@ namespace cache {
         if (!dm.is_valid() || dm.get_name().empty()) return result;
         instance plrs = dm.read_service("Players");
         if (!plrs.is_valid()) return result;
+
+        instance local = plrs.local_player();
+        uintptr_t local_team = 0;
+        if (team_check && local.is_valid()) {
+            local_team = get_player_team(local);
+        }
+
         bool phf = IsPhantomForces();
         for (auto& p : plrs.get_children()) {
             if (!p.is_valid()) continue;
+            if (local.is_valid() && p.address == local.address) continue;
             instance ch = p.model_instance();
             if (!ch.is_valid()) continue;
             SkeletonEntity s{};
             s.player_address = p.address;
+            s.team_address = get_player_team(p);
             if (build_skel(ch, s, phf)) result.push_back(s);
         }
+
+        if (team_check && local_team != 0) {
+            result.erase(
+                std::remove_if(result.begin(), result.end(),
+                    [local_team](const SkeletonEntity& s) {
+                        return s.team_address == local_team;
+                    }),
+                result.end());
+        }
+
         return result;
     }
 

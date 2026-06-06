@@ -163,6 +163,7 @@
     <ClCompile Include="features\hitbox_expander\hitbox_expander.cpp" />
     <ClCompile Include="features\memorymeshchams\memorymeshchams.cpp" />
     <ClCompile Include="features\esp_preview\esp_preview.cpp" />
+    <ClCompile Include="features\config\config.cpp" />
     <ClCompile Include="Clipper2\CPP\Clipper2Lib\src\clipper.engine.cpp" />
     <ClCompile Include="Clipper2\CPP\Clipper2Lib\src\clipper.offset.cpp" />
     <ClCompile Include="Clipper2\CPP\Clipper2Lib\src\clipper.rectclip.cpp" />
@@ -197,6 +198,7 @@
     <ClInclude Include="features\hitbox_expander\hitbox_expander.h" />
     <ClInclude Include="features\memorymeshchams\memorymeshchams.h" />
     <ClInclude Include="features\esp_preview\esp_preview.h" />
+    <ClInclude Include="features\config\config.h" />
     <ClInclude Include="features\mesh_gpu\mesh_gpu.h" />
     <ClInclude Include="features\assetmesh\asset_mesh.h" />
     <ClInclude Include="features\avatarmesh\avatar_mesh.h" />

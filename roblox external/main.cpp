@@ -59,7 +59,6 @@ namespace discord_overlay {
         }
         if (memory_mesh_chams_enabled) features::RenderMemoryMeshChams();
         if (blade_ball_ball_esp) features::RenderBladeBallESP();
-        if (esp_preview_3d) features::RenderESPPreview();
         if (aimbot_enabled) features::RenderFOV();
 
         if (g_state.menu_open) {
@@ -70,6 +69,7 @@ namespace discord_overlay {
             }
             ImGui::SetNextWindowSize(ImVec2(520, 480), ImGuiCond_FirstUseEver);
             RenderMenu();
+            if (esp_preview_3d) features::RenderESPPreview();
         }
     }
 }

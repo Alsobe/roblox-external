@@ -4,6 +4,7 @@
 #include "imgui/imgui.h"
 #include "globals.h"
 #include "features/skybox_changer/skybox_changer.h"
+#include "features/config/config.h"
 
 static int* s_waiting_key_ptr = nullptr;
 
@@ -112,6 +113,7 @@ void RenderMenu() {
             ImGui::Checkbox("tool", &tool_esp);
             if (tool_esp) ImGui::ColorEdit4("tool color", tool_color);
             ImGui::SliderFloat("render dist", &esp_render_distance, 0.0f, 2000.0f, "%.0f");
+            ImGui::Checkbox("team check", &team_check);
             ImGui::Separator();
             ImGui::Checkbox("skeleton", &skeleton_esp);
             if (skeleton_esp) ImGui::ColorEdit4("skeleton color", skeleton_color);
@@ -188,6 +190,71 @@ void RenderMenu() {
             ImGui::Checkbox("ball esp", &blade_ball_ball_esp);
             ImGui::SliderFloat("parry dist", &blade_ball_parry_distance, 4.0f, 30.0f, "%.1f");
             ImGui::SliderFloat("parry height", &blade_ball_parry_height, 2.0f, 15.0f, "%.1f");
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("config")) {
+            static char config_name_buf[128] = "";
+            static char rename_buf[128] = "";
+            static std::vector<std::string> config_list = config::GetConfigList();
+            static int selected_config = -1;
+
+            ImGui::InputText("config name", config_name_buf, sizeof(config_name_buf));
+
+            if (ImGui::Button("Save", ImVec2(-1, 0))) {
+                if (config_name_buf[0] != '\0') {
+                    config::Save(config_name_buf);
+                    config_list = config::GetConfigList();
+                }
+            }
+
+            if (ImGui::Button("Load", ImVec2(-1, 0))) {
+                if (config_name_buf[0] != '\0') {
+                    config::Load(config_name_buf);
+                }
+            }
+
+            if (ImGui::Button("Delete", ImVec2(-1, 0))) {
+                if (config_name_buf[0] != '\0') {
+                    config::Delete(config_name_buf);
+                    config_list = config::GetConfigList();
+                    selected_config = -1;
+                }
+            }
+
+            ImGui::Separator();
+            ImGui::InputText("rename to", rename_buf, sizeof(rename_buf));
+            if (ImGui::Button("Rename", ImVec2(-1, 0))) {
+                if (config_name_buf[0] != '\0' && rename_buf[0] != '\0') {
+                    config::Rename(config_name_buf, rename_buf);
+                    config_list = config::GetConfigList();
+                    strncpy_s(config_name_buf, rename_buf, sizeof(config_name_buf) - 1);
+                }
+            }
+
+            ImGui::Separator();
+            if (ImGui::Button("Open Config Folder", ImVec2(-1, 0))) {
+                config::OpenConfigFolder();
+            }
+
+            ImGui::Separator();
+            ImGui::Text("saved configs:");
+
+            if (ImGui::Button("Refresh List", ImVec2(-1, 0))) {
+                config_list = config::GetConfigList();
+                selected_config = -1;
+            }
+
+            ImGui::BeginChild("config_list", ImVec2(-1, 150), true);
+            for (int i = 0; i < (int)config_list.size(); ++i) {
+                bool is_selected = (selected_config == i);
+                if (ImGui::Selectable(config_list[i].c_str(), is_selected)) {
+                    selected_config = i;
+                    strncpy_s(config_name_buf, config_list[i].c_str(), sizeof(config_name_buf) - 1);
+                }
+            }
+            ImGui::EndChild();
+
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
