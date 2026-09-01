@@ -5,6 +5,7 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <dwmapi.h>
+#include <shellapi.h>
 #include <chrono>
 #include <cstdio>
 
@@ -40,6 +41,11 @@ namespace discord_overlay
     inline ATOM        g_class_atom  = 0;
     inline const char* g_class_name  = "RBXOverlayWnd";
     inline const char* g_window_name = "RBXOverlay";
+
+    // ---- system tray icon so there's a visible app entry to exit from ----
+    static const UINT WM_TRAYICON = WM_APP + 1;
+    static const UINT ID_TRAY_EXIT = 1001;
+    static const UINT ID_TRAY_TOGGLE = 1002;
 
     // menu toggle key lives in globals (menu_toggle_keybind) so the keybinds tab
     // can rebind it at runtime. defaults to VK_HOME.
@@ -278,6 +284,28 @@ namespace discord_overlay
         // never let the overlay steal focus by being clicked on
         case WM_MOUSEACTIVATE:
             return MA_NOACTIVATE;
+
+        case WM_COMMAND:
+            if (LOWORD(wParam) == ID_TRAY_EXIT) { g_request_exit = true; return 0; }
+            if (LOWORD(wParam) == ID_TRAY_TOGGLE) { g_state.menu_open = !g_state.menu_open; return 0; }
+            break;
+
+        default:
+            if (msg == WM_TRAYICON &&
+                (LOWORD(lParam) == WM_RBUTTONUP || LOWORD(lParam) == WM_LBUTTONUP))
+            {
+                POINT pt{};
+                GetCursorPos(&pt);
+                HMENU menu = CreatePopupMenu();
+                AppendMenuA(menu, MF_STRING, ID_TRAY_TOGGLE, "show / hide menu");
+                AppendMenuA(menu, MF_SEPARATOR, 0, nullptr);
+                AppendMenuA(menu, MF_STRING, ID_TRAY_EXIT, "exit");
+                SetForegroundWindow(hWnd);
+                TrackPopupMenu(menu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, nullptr);
+                DestroyMenu(menu);
+                return 0;
+            }
+            break;
         }
 
         return DefWindowProcA(hWnd, msg, wParam, lParam);
@@ -285,6 +313,28 @@ namespace discord_overlay
 
     // creates our own transparent click-through overlay window covering every monitor.
     // no discord required.
+    inline void add_tray_icon()
+    {
+        NOTIFYICONDATAA nid{};
+        nid.cbSize = sizeof(nid);
+        nid.hWnd = g_state.window;
+        nid.uID = 1;
+        nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+        nid.uCallbackMessage = WM_TRAYICON;
+        nid.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
+        strncpy_s(nid.szTip, "roblox external - right click to exit", _TRUNCATE);
+        Shell_NotifyIconA(NIM_ADD, &nid);
+    }
+
+    inline void remove_tray_icon()
+    {
+        NOTIFYICONDATAA nid{};
+        nid.cbSize = sizeof(nid);
+        nid.hWnd = g_state.window;
+        nid.uID = 1;
+        Shell_NotifyIconA(NIM_DELETE, &nid);
+    }
+
     inline bool create_overlay()
     {
         // match roblox's physical pixels, otherwise windows scales our window on
@@ -395,15 +445,15 @@ namespace discord_overlay
     {
         ImGuiStyle& s = ImGui::GetStyle();
 
-        s.WindowRounding    = 10.0f;
-        s.ChildRounding     = 8.0f;
-        s.FrameRounding     = 6.0f;
-        s.PopupRounding     = 8.0f;
+        s.WindowRounding    = 0.0f;   // phetamine is flat/square
+        s.ChildRounding     = 0.0f;
+        s.FrameRounding     = 0.0f;
+        s.PopupRounding     = 0.0f;
         s.ScrollbarRounding = 8.0f;
         s.GrabRounding      = 6.0f;
-        s.TabRounding       = 8.0f;
+        s.TabRounding       = 0.0f;
 
-        s.WindowBorderSize  = 1.0f;
+        s.WindowBorderSize  = 3.0f;   // thick red glow border
         s.ChildBorderSize   = 1.0f;
         s.PopupBorderSize   = 1.0f;
         s.FrameBorderSize   = 1.0f;
@@ -422,10 +472,10 @@ namespace discord_overlay
 
         ImVec4* c = s.Colors;
 
-        const ImVec4 red        = ImVec4(0.86f, 0.13f, 0.24f, 1.00f);
-        const ImVec4 red_dim    = ImVec4(0.86f, 0.13f, 0.24f, 0.55f);
-        const ImVec4 red_soft   = ImVec4(0.86f, 0.13f, 0.24f, 0.28f);
-        const ImVec4 glass      = ImVec4(0.05f, 0.05f, 0.07f, 0.82f); // translucent = glassy
+        const ImVec4 red        = ImVec4(0.78f, 0.08f, 0.08f, 1.00f);
+        const ImVec4 red_dim    = ImVec4(0.78f, 0.08f, 0.08f, 0.55f);
+        const ImVec4 red_soft   = ImVec4(0.78f, 0.08f, 0.08f, 0.28f);
+        const ImVec4 glass      = ImVec4(0.031f, 0.031f, 0.047f, 0.94f); // BG_MAIN 8,8,12
         const ImVec4 glass_deep = ImVec4(0.03f, 0.03f, 0.05f, 0.90f);
         const ImVec4 glass_soft = ImVec4(0.10f, 0.10f, 0.13f, 0.60f);
 
@@ -434,7 +484,7 @@ namespace discord_overlay
         c[ImGuiCol_WindowBg]             = glass;
         c[ImGuiCol_ChildBg]              = ImVec4(0.08f, 0.08f, 0.10f, 0.45f);
         c[ImGuiCol_PopupBg]              = glass_deep;
-        c[ImGuiCol_Border]               = ImVec4(0.86f, 0.13f, 0.24f, 0.35f);
+        c[ImGuiCol_Border]               = ImVec4(0.78f, 0.08f, 0.08f, 0.55f);
         c[ImGuiCol_BorderShadow]         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 
         c[ImGuiCol_FrameBg]              = glass_soft;
@@ -539,11 +589,12 @@ namespace discord_overlay
         if (!init_device())    { LogLine("failed to create d3d11 device"); return; }
         if (!init_imgui())     { LogLine("failed to init imgui"); return; }
 
-        LogLine("overlay ready");
+        add_tray_icon();
+        LogLine("overlay ready - right click the tray icon to exit");
 
         CreateThread(nullptr, 0, input_thread, nullptr, 0, nullptr);
 
-        while (g_state.window)
+        while (g_state.window && !g_request_exit)
         {
             MSG msg{};
             while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -587,6 +638,7 @@ namespace discord_overlay
 
     inline void shutdown()
     {
+        remove_tray_icon();
         ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();

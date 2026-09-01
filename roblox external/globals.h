@@ -22,6 +22,9 @@ inline void LogLine(const char* fmt, ...) {
     while (g_log_lines.size() > 200) g_log_lines.pop_front();
 }
 
+// set by the menu's X button / tray "exit" so the app can shut down cleanly
+inline bool g_request_exit = false;
+
 // menu toggle key - rebindable from the keybinds tab (VK_HOME by default)
 inline int menu_toggle_keybind = 0x24;
 
@@ -86,9 +89,11 @@ inline float walkspeed_value = 30.0f;
 
 inline bool flight_enabled = false;
 inline int flight_keybind = 0;
-inline float flight_value = 50.0f;
+inline float flight_value = 70.0f;
+inline bool flight_hold_mode = false;   // false = toggle (like the lua script)
 
 inline bool infinite_jump_enabled = false;
+inline float infinite_jump_power = 50.0f;
 
 inline bool inventory_checker_enabled = false;
 inline int inventory_checker_keybind = 0;

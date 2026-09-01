@@ -5,6 +5,7 @@
 #include <mutex>
 #include <string>
 #include <cfloat>
+#include <cctype>
 #include "imgui/imgui.h"
 #include "globals.h"
 #include "memory.h"
@@ -69,43 +70,215 @@ static bool keybind_button(const char* label, int& key) {
     return false;
 }
 
+
+// ---------------------------------------------------------------
+// PHETAMINE-style widgets
+// ---------------------------------------------------------------
+namespace ui {
+    static const ImU32 RED       = IM_COL32(200, 20, 20, 255);
+    static const ImU32 RED_DEEP  = IM_COL32(120, 15, 15, 255);
+    static const ImU32 BG_ELEM   = IM_COL32(12, 12, 18, 200);
+    static const ImU32 OFF_TRACK = IM_COL32(30, 30, 40, 255);
+    static const ImU32 TXT_MAIN  = IM_COL32(220, 220, 230, 255);
+    static const ImU32 TXT_DIM   = IM_COL32(160, 160, 170, 255);
+    static const ImU32 WHITE     = IM_COL32(255, 255, 255, 255);
+
+    // red accent bar + uppercase caption
+    inline void Section(const char* text) {
+        ImGui::Dummy(ImVec2(0, 4));
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        float h = ImGui::GetTextLineHeight();
+        ImDrawList* d = ImGui::GetWindowDrawList();
+        d->AddRectFilled(ImVec2(p.x, p.y + 1), ImVec2(p.x + 3, p.y + h - 1), RED);
+
+        char up[128];
+        size_t i = 0;
+        for (; text[i] && i < sizeof(up) - 1; ++i)
+            up[i] = (char)toupper((unsigned char)text[i]);
+        up[i] = '\0';
+
+        ImGui::SetCursorScreenPos(ImVec2(p.x + 12, p.y));
+        ImGui::TextColored(ImVec4(0.94f, 0.94f, 0.98f, 1.0f), "%s", up);
+        ImGui::Dummy(ImVec2(0, 2));
+    }
+
+    // pill switch with sliding knob
+    inline bool Toggle(const char* label, bool* v) {
+        float h = ImGui::GetFrameHeight();
+        float tw = 38.0f, th = 18.0f;
+        float full = ImGui::GetContentRegionAvail().x;
+
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImGui::InvisibleButton(label, ImVec2(full, h));
+        bool pressed = ImGui::IsItemClicked();
+        if (pressed) *v = !*v;
+
+        ImDrawList* d = ImGui::GetWindowDrawList();
+        bool hov = ImGui::IsItemHovered();
+
+        d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BG_ELEM, 3.0f);
+        d->AddRect(p, ImVec2(p.x + full, p.y + h),
+                   hov ? IM_COL32(200, 20, 20, 190) : IM_COL32(200, 20, 20, 110), 3.0f, 0, 1.6f);
+
+        d->AddText(ImVec2(p.x + 12, p.y + (h - ImGui::GetTextLineHeight()) * 0.5f), TXT_MAIN, label);
+
+        float tx = p.x + full - tw - 10.0f;
+        float ty = p.y + (h - th) * 0.5f;
+        d->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + tw, ty + th), *v ? RED : OFF_TRACK, th * 0.5f);
+
+        float kr = 6.0f;
+        float kx = *v ? (tx + tw - kr - 3.0f) : (tx + kr + 3.0f);
+        d->AddCircleFilled(ImVec2(kx, ty + th * 0.5f), kr, WHITE);
+
+        return pressed;
+    }
+
+    // label + right-aligned value + fill track
+    inline bool Slider(const char* label, float* v, float mn, float mx, const char* fmt = "%.0f") {
+        float full = ImGui::GetContentRegionAvail().x;
+        float h = 46.0f;
+        ImVec2 p = ImGui::GetCursorScreenPos();
+
+        ImGui::PushID(label);
+        ImGui::InvisibleButton("##s", ImVec2(full, h));
+        bool active = ImGui::IsItemActive();
+        bool hov = ImGui::IsItemHovered();
+
+        float trx = p.x + 12.0f;
+        float trw = full - 24.0f;
+        float try_ = p.y + h - 14.0f;
+
+        if (active) {
+            float mxpos = ImGui::GetIO().MousePos.x;
+            float r = (mxpos - trx) / (trw > 0 ? trw : 1.0f);
+            if (r < 0) r = 0; if (r > 1) r = 1;
+            *v = mn + (mx - mn) * r;
+        }
+
+        ImDrawList* d = ImGui::GetWindowDrawList();
+        d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BG_ELEM, 3.0f);
+        d->AddRect(p, ImVec2(p.x + full, p.y + h),
+                   (hov || active) ? IM_COL32(200, 20, 20, 190) : IM_COL32(200, 20, 20, 110), 3.0f, 0, 1.6f);
+
+        d->AddText(ImVec2(p.x + 12, p.y + 7), TXT_MAIN, label);
+
+        char buf[64];
+        snprintf(buf, sizeof(buf), fmt, *v);
+        ImVec2 ts = ImGui::CalcTextSize(buf);
+        d->AddText(ImVec2(p.x + full - ts.x - 12, p.y + 7), RED, buf);
+
+        d->AddRectFilled(ImVec2(trx, try_), ImVec2(trx + trw, try_ + 4), OFF_TRACK, 2.0f);
+        float ratio = (mx - mn) != 0.0f ? (*v - mn) / (mx - mn) : 0.0f;
+        if (ratio < 0) ratio = 0; if (ratio > 1) ratio = 1;
+        d->AddRectFilled(ImVec2(trx, try_), ImVec2(trx + trw * ratio, try_ + 4), RED, 2.0f);
+
+        ImGui::PopID();
+        return active;
+    }
+
+    // top nav pill
+    inline bool NavButton(const char* label, bool selected) {
+        ImVec2 sz = ImGui::CalcTextSize(label);
+        ImVec2 btn(sz.x + 26.0f, 30.0f);
+        ImVec2 p = ImGui::GetCursorScreenPos();
+
+        ImGui::InvisibleButton(label, btn);
+        bool clicked = ImGui::IsItemClicked();
+        bool hov = ImGui::IsItemHovered();
+
+        ImDrawList* d = ImGui::GetWindowDrawList();
+        ImU32 bg = selected ? RED_DEEP : (hov ? IM_COL32(80, 10, 10, 220) : IM_COL32(18, 18, 25, 190));
+        d->AddRectFilled(p, ImVec2(p.x + btn.x, p.y + btn.y), bg, 3.0f);
+        d->AddRect(p, ImVec2(p.x + btn.x, p.y + btn.y),
+                   selected ? IM_COL32(200, 20, 20, 235) : IM_COL32(200, 20, 20, 110), 3.0f, 0, 1.6f);
+        d->AddText(ImVec2(p.x + 13.0f, p.y + (btn.y - sz.y) * 0.5f),
+                   selected ? WHITE : TXT_DIM, label);
+
+        return clicked;
+    }
+}
+
 void RenderMenu() {
     // start at a comfortable size, stay freely resizable, and never let it be
     // dragged smaller than the tab bar needs
-    ImGui::SetNextWindowSize(ImVec2(760.0f, 560.0f), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSizeConstraints(ImVec2(520.0f, 360.0f), ImVec2(FLT_MAX, FLT_MAX));
+    ImGui::SetNextWindowSize(ImVec2(760.0f, 600.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSizeConstraints(ImVec2(520.0f, 380.0f), ImVec2(FLT_MAX, FLT_MAX));
 
-    ImGui::Begin("roblox external", nullptr, ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("roblox external", nullptr,
+                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-    if (ImGui::BeginTabBar("tabs", ImGuiTabBarFlags_FittingPolicyScroll)) {
-        if (ImGui::BeginTabItem("aimbot")) {
-            ImGui::Checkbox("enabled", &aimbot_enabled);
-            ImGui::Combo("aim type", &aimbot_aim_type, "camera\0mouse\0");
-            ImGui::Combo("target bone", &aimbot_part, "head\0upper torso\0lower torso\0left hand\0right hand\0left foot\0right foot\0");
-            ImGui::Checkbox("sticky aim", &sticky_aim);
-            ImGui::Checkbox("prediction", &prediction_enabled);
-            if (prediction_enabled) {
-                ImGui::SliderFloat("pred x", &prediction_x, 1.0f, 50.0f);
-                ImGui::SliderFloat("pred y", &prediction_y, 1.0f, 50.0f);
-            }
-            ImGui::SliderFloat("smooth x", &smoothing_x, 2.0f, 20.0f, "%.1f");
-            ImGui::SliderFloat("smooth y", &smoothing_y, 2.0f, 20.0f, "%.1f");
-            ImGui::SliderFloat("fov size", &fov_size, 10.0f, 500.0f);
-            ImGui::Checkbox("show fov", &show_fov);
-            ImGui::EndTabItem();
+    // ---- custom title bar ----
+    {
+        static bool s_minimized = false;
+
+        ImDrawList* d = ImGui::GetWindowDrawList();
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        float full = ImGui::GetContentRegionAvail().x;
+        const float bar_h = 42.0f;
+
+        // drag anywhere on the bar to move the window
+        ImGui::InvisibleButton("##titlebar", ImVec2(full - 76.0f, bar_h));
+        if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+            ImVec2 delta = ImGui::GetIO().MouseDelta;
+            ImVec2 wp = ImGui::GetWindowPos();
+            ImGui::SetWindowPos(ImVec2(wp.x + delta.x, wp.y + delta.y));
         }
 
-        if (ImGui::BeginTabItem("esp")) {
-            ImGui::Checkbox("enabled", &esp_enabled);
+        d->AddText(ImVec2(p.x + 2, p.y + 4), IM_COL32(240, 240, 245, 255), "PHETAMINE");
+        d->AddText(ImVec2(p.x + 2, p.y + 22), IM_COL32(160, 160, 170, 255), "roblox external");
+
+        // minimize + close
+        ImGui::SetCursorScreenPos(ImVec2(p.x + full - 70.0f, p.y + 6.0f));
+        if (ui::NavButton("_", false)) s_minimized = !s_minimized;
+        ImGui::SameLine(0.0f, 6.0f);
+        if (ui::NavButton("X", false)) g_request_exit = true;
+
+        ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + bar_h));
+        d->AddLine(ImVec2(p.x, p.y + bar_h - 4), ImVec2(p.x + full, p.y + bar_h - 4),
+                   IM_COL32(200, 20, 20, 130), 1.5f);
+
+        if (s_minimized) { ImGui::End(); return; }
+    }
+
+    // ---- nav bar ----
+    static int s_page = 0;
+    const char* kPages[] = { "aimbot", "esp", "chams", "misc", "world", "keybinds", "log", "debug", "config" };
+    ImGui::BeginChild("nav", ImVec2(0, 40), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_HorizontalScrollbar);
+    for (int i = 0; i < IM_ARRAYSIZE(kPages); ++i) {
+        if (i) ImGui::SameLine(0.0f, 6.0f);
+        if (ui::NavButton(kPages[i], s_page == i)) s_page = i;
+    }
+    ImGui::EndChild();
+    ImGui::Dummy(ImVec2(0, 4));
+
+    ImGui::BeginChild("content", ImVec2(0, 0), false);
+        if (s_page == 0) {
+            ui::Toggle("enabled", &aimbot_enabled);
+            ImGui::Combo("aim type", &aimbot_aim_type, "camera\0mouse\0");
+            ImGui::Combo("target bone", &aimbot_part, "head\0upper torso\0lower torso\0left hand\0right hand\0left foot\0right foot\0");
+            ui::Toggle("sticky aim", &sticky_aim);
+            ui::Toggle("prediction", &prediction_enabled);
+            if (prediction_enabled) {
+                ui::Slider("pred x", &prediction_x, 1.0f, 50.0f);
+                ui::Slider("pred y", &prediction_y, 1.0f, 50.0f);
+            }
+            ui::Slider("smooth x", &smoothing_x, 2.0f, 20.0f, "%.1f");
+            ui::Slider("smooth y", &smoothing_y, 2.0f, 20.0f, "%.1f");
+            ui::Slider("fov size", &fov_size, 10.0f, 500.0f);
+            ui::Toggle("show fov", &show_fov);
+        }
+
+        if (s_page == 1) {
+            ui::Toggle("enabled", &esp_enabled);
             ImGui::Separator();
-            ImGui::Checkbox("box", &box_esp);
+            ui::Toggle("box", &box_esp);
             if (box_esp) {
                 ImGui::Combo("box style", &box_esp_type, "full\0corners\0");
-                ImGui::Checkbox("fill", &box_fill);
+                ui::Toggle("fill", &box_fill);
                 if (box_fill) {
-                    ImGui::Checkbox("gradient", &box_fill_gradient);
+                    ui::Toggle("gradient", &box_fill_gradient);
                     if (box_fill_gradient) {
-                        ImGui::Checkbox("rotate", &box_fill_gradient_rotate);
+                        ui::Toggle("rotate", &box_fill_gradient_rotate);
                         ImGui::ColorEdit4("fill top", box_fill_top);
                         ImGui::ColorEdit4("fill bottom", box_fill_bottom);
                     }
@@ -113,87 +286,88 @@ void RenderMenu() {
                 }
                 ImGui::ColorEdit4("box color", box_esp_color);
             }
-            ImGui::Checkbox("health bar", &healthbar);
+            ui::Toggle("health bar", &healthbar);
             if (healthbar) ImGui::ColorEdit4("health bar color", healthbar_color);
-            ImGui::Checkbox("health text", &health_text);
+            ui::Toggle("health text", &health_text);
             if (health_text) ImGui::ColorEdit4("health text color", health_text_color);
-            ImGui::Checkbox("name", &name);
+            ui::Toggle("name", &name);
             if (name) ImGui::ColorEdit4("name color", name_color);
-            ImGui::Checkbox("distance", &distance);
+            ui::Toggle("distance", &distance);
             if (distance) ImGui::ColorEdit4("distance color", distance_color);
-            ImGui::Checkbox("rig type", &rig_type);
+            ui::Toggle("rig type", &rig_type);
             if (rig_type) ImGui::ColorEdit4("rig type color", rig_type_color);
-            ImGui::Checkbox("tool", &tool_esp);
+            ui::Toggle("tool", &tool_esp);
             if (tool_esp) ImGui::ColorEdit4("tool color", tool_color);
-            ImGui::SliderFloat("render dist", &esp_render_distance, 0.0f, 2000.0f, "%.0f");
-            ImGui::Checkbox("team check", &team_check);
+            ui::Slider("render dist", &esp_render_distance, 0.0f, 2000.0f, "%.0f");
+            ui::Toggle("team check", &team_check);
             ImGui::Separator();
-            ImGui::Checkbox("skeleton", &skeleton_esp);
+            ui::Toggle("skeleton", &skeleton_esp);
             if (skeleton_esp) ImGui::ColorEdit4("skeleton color", skeleton_color);
-            ImGui::Checkbox("aim viewer", &aimviewer);
-            ImGui::Checkbox("china hat", &chinahat);
+            ui::Toggle("aim viewer", &aimviewer);
+            ui::Toggle("china hat", &chinahat);
             if (chinahat) ImGui::ColorEdit4("hat color", chinahat_color);
             ImGui::Separator();
-            ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("chams")) {
-            ImGui::Checkbox("chams", &chams_enabled);
+        if (s_page == 2) {
+            ui::Toggle("chams", &chams_enabled);
             if (chams_enabled) ImGui::ColorEdit4("chams color", chams_color);
             ImGui::Separator();
-            ImGui::Checkbox("mesh chams", &mesh_chams_enabled);
+            ui::Toggle("mesh chams", &mesh_chams_enabled);
             if (mesh_chams_enabled) {
                 ImGui::ColorEdit4("mesh color", mesh_chams_color);
-                ImGui::Checkbox("union (2d)", &union_chams);
-                ImGui::Checkbox("outline", &outline_chams);
+                ui::Toggle("union (2d)", &union_chams);
+                ui::Toggle("outline", &outline_chams);
                 if (outline_chams) ImGui::ColorEdit4("outline color", outline_chams_color);
             }
             ImGui::Separator();
-            ImGui::Checkbox("memory mesh chams", &memory_mesh_chams_enabled);
+            ui::Toggle("memory mesh chams", &memory_mesh_chams_enabled);
             if (memory_mesh_chams_enabled) {
                 ImGui::ColorEdit4("mem chams color", memory_mesh_chams_color);
-                ImGui::Checkbox("mem union", &memory_union_chams);
-                ImGui::Checkbox("mem outline", &memory_outline_chams);
+                ui::Toggle("mem union", &memory_union_chams);
+                ui::Toggle("mem outline", &memory_outline_chams);
                 if (memory_outline_chams) ImGui::ColorEdit4("mem outline color", memory_outline_chams_color);
             }
             ImGui::Separator();
-            ImGui::Checkbox("expanded hitbox", &render_expanded_hitbox);
+            ui::Toggle("expanded hitbox", &render_expanded_hitbox);
             if (render_expanded_hitbox) {
-                ImGui::Checkbox("hitbox expander", &hitbox_expander_enabled);
-                ImGui::SliderFloat("hitbox size", &hitbox_expander_value, 1.0f, 50.0f);
+                ui::Toggle("hitbox expander", &hitbox_expander_enabled);
+                ui::Slider("hitbox size", &hitbox_expander_value, 1.0f, 50.0f);
             }
-            ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("misc")) {
+        if (s_page == 3) {
             ImGui::TextDisabled("set keys for these in the keybinds tab");
             ImGui::Separator();
-            ImGui::Checkbox("noclip", &noclip_enabled);
+            ui::Toggle("noclip", &noclip_enabled);
             ImGui::Separator();
-            ImGui::Checkbox("walkspeed", &walkspeed_enabled);
-            if (walkspeed_enabled) ImGui::SliderFloat("speed", &walkspeed_value, 0.0f, 200.0f);
+            ui::Toggle("walkspeed", &walkspeed_enabled);
+            if (walkspeed_enabled) ui::Slider("speed", &walkspeed_value, 0.0f, 200.0f);
             ImGui::Separator();
-            ImGui::Checkbox("flight", &flight_enabled);
+            ui::Toggle("flight", &flight_enabled);
             if (flight_enabled) {
-                ImGui::SliderFloat("fly speed", &flight_value, 0.0f, 200.0f);
-                ImGui::TextDisabled("hold key + wasd, space = up, lshift = down");
+                ui::Slider("fly speed", &flight_value, 10.0f, 250.0f);
+                ui::Toggle("hold instead of toggle", &flight_hold_mode);
+                ImGui::TextDisabled("wasd = move, space = up, lshift/lctrl = down");
             }
             ImGui::Separator();
-            ImGui::Checkbox("click teleport", &click_teleport_enabled);
-            if (click_teleport_enabled) ImGui::SliderFloat("tp distance", &click_teleport_distance, 5.0f, 200.0f, "%.0f studs");
+            ui::Toggle("click teleport", &click_teleport_enabled);
+            if (click_teleport_enabled) ui::Slider("tp distance", &click_teleport_distance, 5.0f, 200.0f, "%.0f studs");
             ImGui::Separator();
-            ImGui::Checkbox("infinite jump", &infinite_jump_enabled);
-            if (infinite_jump_enabled) ImGui::TextDisabled("press space repeatedly to keep jumping");
+            ui::Toggle("infinite jump", &infinite_jump_enabled);
+            if (infinite_jump_enabled) {
+                ui::Slider("jump power", &infinite_jump_power, 25.0f, 150.0f);
+                ImGui::TextDisabled("tap space in mid-air to jump again");
+            }
             ImGui::Separator();
-            ImGui::Checkbox("inventory checker", &inventory_checker_enabled);
+            ui::Toggle("inventory checker", &inventory_checker_enabled);
             if (inventory_checker_enabled) ImGui::TextDisabled("hold the key with your cursor over a player");
             ImGui::Separator();
 
-            ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("world")) {
-            ImGui::Checkbox("skybox changer", &skybox_changer_enabled);
+        if (s_page == 4) {
+            ui::Toggle("skybox changer", &skybox_changer_enabled);
             if (skybox_changer_enabled) {
                 ImGui::Combo("skybox", &skybox_type,
                     "Piss\0Peach\0Saku\0Purple\0Retro\0Space\0Sea\0Night V2\0"
@@ -203,10 +377,9 @@ void RenderMenu() {
                     ImGui::TextWrapped("%s", skybox_debug_msg);
                 }
             }
-            ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("keybinds")) {
+        if (s_page == 5) {
             ImGui::TextDisabled("click a bind then press any key or mouse button");
             ImGui::Separator();
 
@@ -231,10 +404,9 @@ void RenderMenu() {
             ImGui::TextDisabled("all binds are hold-to-use except click teleport,");
             ImGui::TextDisabled("which fires once per press.");
 
-            ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("log")) {
+        if (s_page == 6) {
             if (ImGui::Button("clear", ImVec2(80, 0))) {
                 std::lock_guard<std::mutex> lock(g_log_mutex);
                 g_log_lines.clear();
@@ -249,10 +421,9 @@ void RenderMenu() {
             if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0f)
                 ImGui::SetScrollHereY(1.0f);
             ImGui::EndChild();
-            ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("debug")) {
+        if (s_page == 7) {
             ImGui::TextWrapped("if a feature does nothing, check these values. "
                                "0x0 or 'INVALID' means that offset is wrong for your client version.");
             ImGui::Separator();
@@ -315,10 +486,9 @@ void RenderMenu() {
             if (ents.empty())
                 ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1), "no other players cached (join a populated server)");
 
-            ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("config")) {
+        if (s_page == 8) {
             static char config_name_buf[128] = "";
             static char rename_buf[128] = "";
             static std::vector<std::string> config_list = config::GetConfigList();
@@ -380,9 +550,7 @@ void RenderMenu() {
             }
             ImGui::EndChild();
 
-            ImGui::EndTabItem();
         }
-        ImGui::EndTabBar();
-    }
+    ImGui::EndChild();
     ImGui::End();
 }
