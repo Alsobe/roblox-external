@@ -75,11 +75,16 @@ static bool keybind_button(const char* label, int& key) {
 // PHETAMINE-style widgets
 // ---------------------------------------------------------------
 namespace ui {
-    static const ImU32 BG_ELEM   = IM_COL32(12, 12, 18, 200);
     static const ImU32 OFF_TRACK = IM_COL32(30, 30, 40, 255);
     static const ImU32 TXT_MAIN  = IM_COL32(220, 220, 230, 255);
     static const ImU32 TXT_DIM   = IM_COL32(160, 160, 170, 255);
     static const ImU32 WHITE     = IM_COL32(255, 255, 255, 255);
+
+    // element background, alpha driven by the ui transparency slider
+    inline ImU32 BgElem() {
+        float a = 1.0f - (ui_transparency / 100.0f);
+        return IM_COL32(12, 12, 18, (int)(200.0f * a));
+    }
 
     // live accent, driven by the ui page (so rainbow actually reaches every widget)
     inline ImU32 Accent(float alpha = 1.0f) {
@@ -134,7 +139,7 @@ namespace ui {
         ImDrawList* d = ImGui::GetWindowDrawList();
         bool hov = ImGui::IsItemHovered();
 
-        d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BG_ELEM, 3.0f);
+        d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BgElem(), 3.0f);
         d->AddRect(p, ImVec2(p.x + full, p.y + h),
                    hov ? Accent(0.75f) : Accent(0.43f), 3.0f, 0, 1.6f);
 
@@ -175,7 +180,7 @@ namespace ui {
         }
 
         ImDrawList* d = ImGui::GetWindowDrawList();
-        d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BG_ELEM, 3.0f);
+        d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BgElem(), 3.0f);
         d->AddRect(p, ImVec2(p.x + full, p.y + h),
                    (hov || active) ? Accent(0.75f) : Accent(0.43f), 3.0f, 0, 1.6f);
 
@@ -197,9 +202,9 @@ namespace ui {
     }
 
     // top nav pill
-    inline bool NavButton(const char* label, bool selected) {
+    inline bool NavButton(const char* label, bool selected, float width = 0.0f) {
         ImVec2 sz = ImGui::CalcTextSize(label);
-        ImVec2 btn(sz.x + 26.0f, 30.0f);
+        ImVec2 btn(width > 0.0f ? width : sz.x + 26.0f, 30.0f);
         ImVec2 p = ImGui::GetCursorScreenPos();
 
         ImGui::InvisibleButton(label, btn);
@@ -207,11 +212,14 @@ namespace ui {
         bool hov = ImGui::IsItemHovered();
 
         ImDrawList* d = ImGui::GetWindowDrawList();
-        ImU32 bg = selected ? AccentDeep() : (hov ? AccentDeep(0.55f) : IM_COL32(18, 18, 25, 190));
+        float na = 1.0f - (ui_transparency / 100.0f);
+        ImU32 bg = selected ? AccentDeep() : (hov ? AccentDeep(0.55f)
+                                                  : IM_COL32(18, 18, 25, (int)(190.0f * na)));
         d->AddRectFilled(p, ImVec2(p.x + btn.x, p.y + btn.y), bg, 3.0f);
         d->AddRect(p, ImVec2(p.x + btn.x, p.y + btn.y),
                    selected ? Accent(0.92f) : Accent(0.43f), 3.0f, 0, 1.6f);
-        d->AddText(ImVec2(p.x + 13.0f, p.y + (btn.y - sz.y) * 0.5f),
+        // always centre the caption inside the pill
+        d->AddText(ImVec2(p.x + (btn.x - sz.x) * 0.5f, p.y + (btn.y - sz.y) * 0.5f),
                    selected ? WHITE : TXT_DIM, label);
 
         return clicked;
@@ -241,9 +249,19 @@ void RenderMenu() {
         st.Colors[ImGuiCol_HeaderActive]    = accent;
         st.Colors[ImGuiCol_SeparatorActive] = accent;
 
-        ImVec4 bg = st.Colors[ImGuiCol_WindowBg];
-        bg.w = 1.0f - (ui_transparency / 100.0f);
-        st.Colors[ImGuiCol_WindowBg] = bg;
+        // every background alpha scales with the slider, not just the main window
+        float a = 1.0f - (ui_transparency / 100.0f);
+        st.Colors[ImGuiCol_WindowBg]        = ImVec4(0.031f, 0.031f, 0.047f, 0.94f * a);
+        st.Colors[ImGuiCol_ChildBg]         = ImVec4(0.047f, 0.047f, 0.070f, 0.45f * a);
+        st.Colors[ImGuiCol_PopupBg]         = ImVec4(0.030f, 0.030f, 0.050f, 0.94f * a);
+        st.Colors[ImGuiCol_FrameBg]         = ImVec4(0.070f, 0.070f, 0.098f, 0.70f * a);
+        st.Colors[ImGuiCol_FrameBgHovered]  = ImVec4(accent.x, accent.y, accent.z, 0.28f * a);
+        st.Colors[ImGuiCol_FrameBgActive]   = ImVec4(accent.x, accent.y, accent.z, 0.45f * a);
+        st.Colors[ImGuiCol_TitleBg]         = ImVec4(0.030f, 0.030f, 0.050f, 0.94f * a);
+        st.Colors[ImGuiCol_TitleBgActive]   = ImVec4(0.063f, 0.016f, 0.027f, 0.94f * a);
+        st.Colors[ImGuiCol_MenuBarBg]       = ImVec4(0.030f, 0.030f, 0.050f, 0.94f * a);
+        st.Colors[ImGuiCol_Button]          = ImVec4(0.070f, 0.070f, 0.098f, 0.70f * a);
+        st.Colors[ImGuiCol_ScrollbarBg]     = ImVec4(0.030f, 0.030f, 0.050f, 0.40f * a);
     }
 
     // start at a comfortable size, stay freely resizable, and never let it be
@@ -289,13 +307,28 @@ void RenderMenu() {
     // ---- nav bar ----
     static int s_page = 0;
     const char* kPages[] = { "aimbot", "esp", "misc", "world", "keybinds", "ui", "config", "debug" };
-    ImGui::BeginChild("nav", ImVec2(0, 40), false,
-                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    for (int i = 0; i < IM_ARRAYSIZE(kPages); ++i) {
-        if (i) ImGui::SameLine(0.0f, 6.0f);
-        if (ui::NavButton(kPages[i], s_page == i)) s_page = i;
+    {
+        const int   n     = IM_ARRAYSIZE(kPages);
+        const float gap   = 6.0f;
+        const float avail = ImGui::GetContentRegionAvail().x;
+
+        // lay the tabs out as an even grid so they always fill the row exactly
+        int per_row = n;
+        float bw = (avail - gap * (per_row - 1)) / per_row;
+        if (bw < 74.0f) {                       // too cramped -> two even rows
+            per_row = (n + 1) / 2;
+            bw = (avail - gap * (per_row - 1)) / per_row;
+        }
+        int rows = (n + per_row - 1) / per_row;
+
+        ImGui::BeginChild("nav", ImVec2(0, rows * 30.0f + (rows - 1) * gap + 4.0f), false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        for (int i = 0; i < n; ++i) {
+            if (i % per_row) ImGui::SameLine(0.0f, gap);
+            if (ui::NavButton(kPages[i], s_page == i, bw)) s_page = i;
+        }
+        ImGui::EndChild();
     }
-    ImGui::EndChild();
     ImGui::Dummy(ImVec2(0, 4));
 
     ImGui::BeginChild("content", ImVec2(0, 0), false);
@@ -536,6 +569,58 @@ void RenderMenu() {
             ImGui::Text("cached players : %d", (int)ents.size());
             if (ents.empty())
                 ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1), "no other players cached (join a populated server)");
+
+            ImGui::Separator();
+            ui::Section("write test");
+            ImGui::TextWrapped("flight / infinite jump / teleport all write to the root part's "
+                               "Primitive. this proves whether those writes actually land.");
+
+            if (is_valid_address(lp.humanoid_address)) {
+                uintptr_t hrp_part = read<uintptr_t>(lp.humanoid_address + Offsets::Humanoid::HumanoidRootPart);
+                ImGui::Text("hrp part (0x478): 0x%llX %s",
+                            (unsigned long long)hrp_part,
+                            is_valid_address(hrp_part) ? "" : "<- INVALID");
+
+                if (is_valid_address(hrp_part)) {
+                    uintptr_t prim = read<uintptr_t>(hrp_part + Offsets::BasePart::Primitive);
+                    ImGui::Text("primitive (0x188): 0x%llX %s",
+                                (unsigned long long)prim,
+                                is_valid_address(prim) ? "" : "<- INVALID");
+
+                    float pos[3] = {};
+                    read_raw(prim + Offsets::Primitive::Position, pos, sizeof(pos));
+                    ImGui::Text("position read   : %.1f, %.1f, %.1f", pos[0], pos[1], pos[2]);
+
+                    float vel[3] = {};
+                    read_raw(prim + Offsets::Primitive::AssemblyLinearVelocity, vel, sizeof(vel));
+                    ImGui::Text("velocity read   : %.1f, %.1f, %.1f", vel[0], vel[1], vel[2]);
+
+                    static char test_result[160] = "not run yet";
+
+                    if (ImGui::Button("run position write test (+10 studs up)", ImVec2(-1, 0))) {
+                        float before[3] = {};
+                        read_raw(prim + Offsets::Primitive::Position, before, sizeof(before));
+
+                        float target[3] = { before[0], before[1] + 10.0f, before[2] };
+                        bool wrote = write_raw(prim + Offsets::Primitive::Position, target, sizeof(target));
+
+                        float after[3] = {};
+                        read_raw(prim + Offsets::Primitive::Position, after, sizeof(after));
+
+                        float delta = after[1] - before[1];
+                        snprintf(test_result, sizeof(test_result),
+                                 "WriteProcessMemory=%s | y %.2f -> %.2f (delta %.2f) | %s",
+                                 wrote ? "ok" : "FAILED",
+                                 before[1], after[1], delta,
+                                 (delta > 5.0f) ? "WRITE LANDED"
+                                                : "write did NOT stick (engine reverted or wrong offset)");
+                        LogLine("%s", test_result);
+                    }
+                    ImGui::TextWrapped("%s", test_result);
+                }
+            } else {
+                ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1), "no humanoid - spawn in first");
+            }
 
         }
 
