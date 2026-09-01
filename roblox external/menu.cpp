@@ -206,8 +206,17 @@ void RenderMenu() {
 
             if (dm.is_valid()) {
                 ImGui::Text("game name      : %s", dm.get_name().c_str());
-                ImGui::Text("place id       : %llu",
-                            (unsigned long long)read<uint64_t>(dm.address + Offsets::DataModel::PlaceId));
+                uint64_t place_id = read<uint64_t>(dm.address + Offsets::DataModel::PlaceId);
+                bool loaded = read<bool>(dm.address + Offsets::DataModel::GameLoaded);
+                ImGui::Text("place id       : %llu", (unsigned long long)place_id);
+                ImGui::Text("game loaded    : %s", loaded ? "yes" : "no");
+
+                if (place_id == 0) {
+                    ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1),
+                        "you are not in a game yet (home page / menu).\n"
+                        "join an actual experience - there is no world or\n"
+                        "player list to read until then.");
+                }
             }
 
             ImGui::Separator();

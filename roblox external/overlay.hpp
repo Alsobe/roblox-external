@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdio>
 
+#include "memory.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_win32.h"
 #include "imgui/backends/imgui_impl_dx11.h"
@@ -28,6 +29,7 @@ namespace discord_overlay
         D3D_FEATURE_LEVEL     feature_level{};
         bool                  menu_open   = false;
         bool                  centered_once = false;
+        HWND                  prev_foreground = nullptr;
     };
 
     inline State g_state;
@@ -41,6 +43,31 @@ namespace discord_overlay
     // menu toggle key. change this to whatever you want, e.g.
     // VK_HOME, VK_END, VK_INSERT, VK_DELETE, VK_PRIOR (page up), VK_F1 ... VK_F12
     constexpr int TOGGLE_KEY = VK_HOME;
+
+    // finds roblox's main window so we can hand input back to it
+    struct FindWndData { DWORD pid; HWND result; };
+
+    inline BOOL CALLBACK find_wnd_proc(HWND hwnd, LPARAM lparam)
+    {
+        FindWndData* d = reinterpret_cast<FindWndData*>(lparam);
+        DWORD wnd_pid = 0;
+        GetWindowThreadProcessId(hwnd, &wnd_pid);
+        if (wnd_pid == d->pid && GetWindow(hwnd, GW_OWNER) == nullptr && IsWindowVisible(hwnd))
+        {
+            d->result = hwnd;
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    inline HWND find_roblox_window()
+    {
+        DWORD pid = (DWORD)mem::process_id.load();
+        if (!pid) return nullptr;
+        FindWndData d{ pid, nullptr };
+        EnumWindows(find_wnd_proc, reinterpret_cast<LPARAM>(&d));
+        return d.result;
+    }
 
     // when click_through is true the overlay ignores the mouse entirely so you can
     // keep playing. when the menu is open we drop WS_EX_TRANSPARENT so it can be used.
@@ -150,12 +177,30 @@ namespace discord_overlay
 
                 if (g_state.menu_open)
                 {
+                    // remember whatever the user was using so we can hand focus back
+                    HWND prev = GetForegroundWindow();
+                    if (prev && prev != g_state.window)
+                        g_state.prev_foreground = prev;
+
                     set_clickthrough(false);
                     SetForegroundWindow(g_state.window);
                 }
                 else
                 {
                     set_clickthrough(true);
+
+                    // give focus back to roblox (or whatever was focused before),
+                    // otherwise the game keeps ignoring your mouse and keyboard
+                    HWND restore = g_state.prev_foreground;
+                    if (!restore || !IsWindow(restore))
+                        restore = find_roblox_window();
+
+                    if (restore && IsWindow(restore))
+                    {
+                        SetForegroundWindow(restore);
+                        SetActiveWindow(restore);
+                    }
+                    g_state.prev_foreground = nullptr;
                 }
             }
 
