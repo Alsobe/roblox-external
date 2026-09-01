@@ -96,6 +96,46 @@ static void WaitForRoblox() {
     g_base_address = base;
 }
 
+// returns false once the process we're attached to has exited
+static bool RobloxStillAlive() {
+    HANDLE h = mem::roblox_h.load();
+    if (!h || h == INVALID_HANDLE_VALUE) return false;
+    DWORD code = 0;
+    if (!GetExitCodeProcess(h, &code)) return false;
+    return code == STILL_ACTIVE;
+}
+
+// watches for roblox dying and transparently re-attaches to the new process,
+// so you can close/reopen roblox without restarting the overlay
+static DWORD WINAPI ReconnectLoop(LPVOID) {
+    while (true) {
+        if (g_base_address && !RobloxStillAlive()) {
+            printf("roblox closed - waiting for it to come back...\n");
+
+            g_base_address = 0;
+            mem::process_id.store(0);
+            HANDLE old = mem::roblox_h.exchange(nullptr);
+            if (old && old != INVALID_HANDLE_VALUE) CloseHandle(old);
+            g_memory.Handle = nullptr;
+
+            uint32_t pid = 0;
+            uintptr_t base = 0;
+            while (!process::FindRoblox(pid, base)) Sleep(2000);
+
+            mem::process_id.store(pid);
+            if (mem::grabroblox_h()) {
+                g_base_address = base;
+                printf("reattached - pid: %u, base: 0x%llx\n", pid, (unsigned long long)base);
+            } else {
+                printf("found roblox but failed to open a handle (run as admin)\n");
+                Sleep(2000);
+            }
+        }
+        Sleep(1000);
+    }
+    return 0;
+}
+
 _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC, int nS) {
     (void)hI; (void)hP; (void)lpC; (void)nS;
     AllocConsole();
@@ -112,6 +152,7 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
     features::StartMemoryMeshChams();
     features::rage::Initialize();
     CreateThread(nullptr, 0, [](LPVOID) -> DWORD { FeatureLoop(); return 0; }, nullptr, 0, nullptr);
+    CreateThread(nullptr, 0, ReconnectLoop, nullptr, 0, nullptr);
 
     printf("launching overlay - home to toggle menu\n");
     discord_overlay::run();

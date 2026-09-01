@@ -34,7 +34,11 @@ std::string fetchstring(uint64_t address) {
 }
 
 std::string instance::get_name() const {
-    return fetchstring(read<uintptr_t>(address + Offsets::Instance::Name));
+    // name lives inside a container: *(instance + NameContainer) + Name
+    // (same two-step pattern as get_class_name below)
+    uintptr_t container = read<uintptr_t>(address + Offsets::Instance::NameContainer);
+    if (!is_valid_address(container)) return {};
+    return fetchstring(container + Offsets::Instance::Name);
 }
 
 std::string instance::get_class_name() const {

@@ -182,13 +182,10 @@ namespace discord_overlay
                     if (prev && prev != g_state.window)
                         g_state.prev_foreground = prev;
 
-                    set_clickthrough(false);
                     SetForegroundWindow(g_state.window);
                 }
                 else
                 {
-                    set_clickthrough(true);
-
                     // give focus back to roblox (or whatever was focused before),
                     // otherwise the game keeps ignoring your mouse and keyboard
                     HWND restore = g_state.prev_foreground;
@@ -537,6 +534,19 @@ namespace discord_overlay
             render_ui();
 
             ImGui::Render();
+
+            // only capture the mouse where the menu actually is. everywhere else stays
+            // click-through so roblox and your other apps keep working while it's open.
+            {
+                static bool s_click_through = true;
+                bool want_mouse = g_state.menu_open && ImGui::GetIO().WantCaptureMouse;
+                bool desired = !want_mouse;
+                if (desired != s_click_through)
+                {
+                    set_clickthrough(desired);
+                    s_click_through = desired;
+                }
+            }
 
             constexpr float clear[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
             g_context->OMSetRenderTargets(1, &g_state.rtv, nullptr);
