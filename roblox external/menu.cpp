@@ -416,26 +416,6 @@ void RenderMenu() {
             ui::Toggle("chams", &chams_enabled);
             if (chams_enabled) ImGui::ColorEdit4("chams color", chams_color);
             ImGui::Separator();
-            ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f),
-                               "mesh chams need the mesh backend, which is not built");
-            ImGui::TextDisabled("(asset_mesh / avatar_mesh / mesh_gpu are stubbed out)");
-            ImGui::Separator();
-            ui::Toggle("mesh chams", &mesh_chams_enabled);
-            if (mesh_chams_enabled) {
-                ImGui::ColorEdit4("mesh color", mesh_chams_color);
-                ui::Toggle("union (2d)", &union_chams);
-                ui::Toggle("outline", &outline_chams);
-                if (outline_chams) ImGui::ColorEdit4("outline color", outline_chams_color);
-            }
-            ImGui::Separator();
-            ui::Toggle("memory mesh chams", &memory_mesh_chams_enabled);
-            if (memory_mesh_chams_enabled) {
-                ImGui::ColorEdit4("mem chams color", memory_mesh_chams_color);
-                ui::Toggle("mem union", &memory_union_chams);
-                ui::Toggle("mem outline", &memory_outline_chams);
-                if (memory_outline_chams) ImGui::ColorEdit4("mem outline color", memory_outline_chams_color);
-            }
-            ImGui::Separator();
             ui::Toggle("expanded hitbox", &render_expanded_hitbox);
             if (render_expanded_hitbox) {
                 ui::Toggle("hitbox expander", &hitbox_expander_enabled);

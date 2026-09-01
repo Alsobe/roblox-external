@@ -58,9 +58,6 @@ inline bool hitbox_expander_enabled = false;
 inline float hitbox_expander_value = 10.0f;
 inline float esp_render_distance = 0.0f;
 inline bool chams_enabled = false;
-inline bool mesh_chams_enabled = false;
-inline bool union_chams = true;
-inline bool outline_chams = false;
 
 inline bool box_fill = false;
 inline bool box_fill_gradient = false;
@@ -77,8 +74,6 @@ inline float tool_color[4] = { 0.9f, 0.9f, 0.5f, 1.0f };
 inline float skeleton_color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 inline float chinahat_color[4] = { 0.0f, 0.8f, 1.0f, 1.0f };
 inline float chams_color[4] = { 1.0f, 0.0f, 0.0f, 0.6f };
-inline float mesh_chams_color[4] = { 0.0f, 1.0f, 0.0f, 0.6f };
-inline float outline_chams_color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 inline float box_fill_top[4] = { 0.0f, 0.0f, 0.0f, 0.4f };
 inline float box_fill_bottom[4] = { 0.5f, 0.0f, 0.5f, 0.4f };
 inline float healthbar_color[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
@@ -122,11 +117,6 @@ inline int skybox_type = 0;
 inline char skybox_debug_msg[256]{};
 
 
-inline bool memory_mesh_chams_enabled = false;
-inline float memory_mesh_chams_color[4] = { 1.0f, 0.0f, 0.0f, 0.6f };
-inline bool memory_union_chams = true;
-inline bool memory_outline_chams = false;
-inline float memory_outline_chams_color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 inline bool skeleton = false;
 inline float menu_alpha = 1.0f;
@@ -183,7 +173,6 @@ inline bool show_box = true;
 
 inline bool show_chams = true;
 
-inline bool show_mesh_chams = true;
 
 inline bool show_chinahat = true;
 

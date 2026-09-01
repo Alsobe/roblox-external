@@ -6,8 +6,6 @@ namespace features {
     void RenderSkeletonESP();
     void RenderChinaHatESP();
     void RenderChams();
-    void RenderMeshChams();
     void RenderExpandedHitbox();
-    void ShutdownMeshChams();
 }
 

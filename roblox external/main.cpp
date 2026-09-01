@@ -19,7 +19,6 @@
 #include "features/inventory_checker/inventory_checker.h"
 #include "features/skybox_changer/skybox_changer.h"
 #include "features/hitbox_expander/hitbox_expander.h"
-#include "features/memorymeshchams/memorymeshchams.h"
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_win32.h"
@@ -54,10 +53,8 @@ namespace discord_overlay {
             if (chinahat) features::RenderChinaHatESP();
             if (aimviewer) features::RenderAimViewer();
             if (chams_enabled) features::RenderChams();
-            if (mesh_chams_enabled) features::RenderMeshChams();
             if (render_expanded_hitbox) features::RenderExpandedHitbox();
         }
-        if (memory_mesh_chams_enabled) features::RenderMemoryMeshChams();
         if (aimbot_enabled) features::RenderFOV();
         if (inventory_checker_enabled) features::RenderInventoryChecker();
 
@@ -152,15 +149,12 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
     LogLine("waiting for roblox...");
 
     cache::StartThread();
-    features::StartMemoryMeshChams();
     CreateThread(nullptr, 0, [](LPVOID) -> DWORD { FeatureLoop(); return 0; }, nullptr, 0, nullptr);
     CreateThread(nullptr, 0, AttachLoop, nullptr, 0, nullptr);
 
     discord_overlay::run();
 
     cache::StopThread();
-    features::ShutdownMeshChams();
-    features::ShutdownMemoryMeshChams();
     discord_overlay::shutdown();
     return 0;
 }

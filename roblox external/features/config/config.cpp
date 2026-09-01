@@ -115,9 +115,6 @@ namespace config {
         WriteEntry(f, "hitbox_expander_value", hitbox_expander_value);
         WriteEntry(f, "esp_render_distance", esp_render_distance);
         WriteEntry(f, "chams_enabled", chams_enabled);
-        WriteEntry(f, "mesh_chams_enabled", mesh_chams_enabled);
-        WriteEntry(f, "union_chams", union_chams);
-        WriteEntry(f, "outline_chams", outline_chams);
         WriteEntry(f, "box_fill", box_fill);
         WriteEntry(f, "box_fill_gradient", box_fill_gradient);
         WriteEntry(f, "box_fill_gradient_rotate", box_fill_gradient_rotate);
@@ -134,8 +131,6 @@ namespace config {
         WriteEntry(f, "skeleton_color", skeleton_color);
         WriteEntry(f, "chinahat_color", chinahat_color);
         WriteEntry(f, "chams_color", chams_color);
-        WriteEntry(f, "mesh_chams_color", mesh_chams_color);
-        WriteEntry(f, "outline_chams_color", outline_chams_color);
         WriteEntry(f, "box_fill_top", box_fill_top);
         WriteEntry(f, "box_fill_bottom", box_fill_bottom);
         WriteEntry(f, "healthbar_color", healthbar_color);
@@ -171,11 +166,6 @@ namespace config {
         WriteEntry(f, "skybox_type", skybox_type);
 
         // memory chams
-        WriteEntry(f, "memory_mesh_chams_enabled", memory_mesh_chams_enabled);
-        WriteEntry(f, "memory_union_chams", memory_union_chams);
-        WriteEntry(f, "memory_outline_chams", memory_outline_chams);
-        WriteEntry(f, "memory_mesh_chams_color", memory_mesh_chams_color);
-        WriteEntry(f, "memory_outline_chams_color", memory_outline_chams_color);
 
         f.close();
         return true;
@@ -220,9 +210,6 @@ namespace config {
             if (ReadLine(line, "hitbox_expander_value", hitbox_expander_value)) continue;
             if (ReadLine(line, "esp_render_distance", esp_render_distance)) continue;
             if (ReadLine(line, "chams_enabled", chams_enabled)) continue;
-            if (ReadLine(line, "mesh_chams_enabled", mesh_chams_enabled)) continue;
-            if (ReadLine(line, "union_chams", union_chams)) continue;
-            if (ReadLine(line, "outline_chams", outline_chams)) continue;
             if (ReadLine(line, "box_fill", box_fill)) continue;
             if (ReadLine(line, "box_fill_gradient", box_fill_gradient)) continue;
             if (ReadLine(line, "box_fill_gradient_rotate", box_fill_gradient_rotate)) continue;
@@ -239,8 +226,6 @@ namespace config {
             if (ReadLine(line, "skeleton_color", skeleton_color)) continue;
             if (ReadLine(line, "chinahat_color", chinahat_color)) continue;
             if (ReadLine(line, "chams_color", chams_color)) continue;
-            if (ReadLine(line, "mesh_chams_color", mesh_chams_color)) continue;
-            if (ReadLine(line, "outline_chams_color", outline_chams_color)) continue;
             if (ReadLine(line, "box_fill_top", box_fill_top)) continue;
             if (ReadLine(line, "box_fill_bottom", box_fill_bottom)) continue;
             if (ReadLine(line, "healthbar_color", healthbar_color)) continue;
@@ -276,11 +261,6 @@ namespace config {
             if (ReadLine(line, "skybox_type", skybox_type)) continue;
 
             // memory chams
-            if (ReadLine(line, "memory_mesh_chams_enabled", memory_mesh_chams_enabled)) continue;
-            if (ReadLine(line, "memory_union_chams", memory_union_chams)) continue;
-            if (ReadLine(line, "memory_outline_chams", memory_outline_chams)) continue;
-            if (ReadLine(line, "memory_mesh_chams_color", memory_mesh_chams_color)) continue;
-            if (ReadLine(line, "memory_outline_chams_color", memory_outline_chams_color)) continue;
         }
 
         f.close();
