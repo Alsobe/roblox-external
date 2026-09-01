@@ -15,31 +15,20 @@ namespace meshgpu {
 
     using MeshResolver = ResolvedMeshDraw(*)(const cache::EspEntity&, size_t);
 
-    // implemented in mesh_gpu.cpp (now part of the build)
-    size_t render(const std::vector<cache::EspEntity>& entities, const float view[16],
-                  float viewport_width, float viewport_height,
-                  ID3D11Device* device, ID3D11DeviceContext* context, const float color[4]);
+    inline void render(const std::vector<cache::EspEntity>&, float*, float, float,
+                       ID3D11Device*, ID3D11DeviceContext*, const float*) {}
 
-    size_t render_with_resolver(const std::vector<cache::EspEntity>& entities, const float view[16],
-                                float viewport_width, float viewport_height,
-                                ID3D11Device* device, ID3D11DeviceContext* context,
-                                const float color[4], MeshResolver resolver);
+    inline void render_with_resolver(const std::vector<cache::EspEntity>&, float*, float, float,
+                                     ID3D11Device*, ID3D11DeviceContext*, const float*, MeshResolver) {}
 
-    size_t render_union_fill_with_resolver(const std::vector<cache::EspEntity>& entities, const float view[16],
-                                           float viewport_width, float viewport_height,
-                                           ID3D11Device* device, ID3D11DeviceContext* context,
-                                           const float color[4], MeshResolver resolver);
+    inline void render_union_fill_with_resolver(const std::vector<cache::EspEntity>&, float*, float, float,
+                                                ID3D11Device*, ID3D11DeviceContext*, const float*, MeshResolver) {}
 
-    size_t render_union_outline_with_resolver(const std::vector<cache::EspEntity>& entities, const float view[16],
-                                              float viewport_width, float viewport_height,
-                                              ID3D11Device* device, ID3D11DeviceContext* context,
-                                              const float color[4], MeshResolver resolver);
+    inline void render_union_outline_with_resolver(const std::vector<cache::EspEntity>&, float*, float, float,
+                                                   ID3D11Device*, ID3D11DeviceContext*, const float*, MeshResolver) {}
 
-    size_t render_wireframe_with_resolver(const std::vector<cache::EspEntity>& entities, const float view[16],
-                                          float viewport_width, float viewport_height,
-                                          ID3D11Device* device, ID3D11DeviceContext* context,
-                                          const float color[4], MeshResolver resolver);
+    inline void render_wireframe_with_resolver(const std::vector<cache::EspEntity>&, float*, float, float,
+                                               ID3D11Device*, ID3D11DeviceContext*, const float*, MeshResolver) {}
 
-    size_t get_last_drawn_entities();
-    void shutdown();
+    inline void shutdown() {}
 }

@@ -416,6 +416,10 @@ void RenderMenu() {
             ui::Toggle("chams", &chams_enabled);
             if (chams_enabled) ImGui::ColorEdit4("chams color", chams_color);
             ImGui::Separator();
+            ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f),
+                               "mesh chams need the mesh backend, which is not built");
+            ImGui::TextDisabled("(asset_mesh / avatar_mesh / mesh_gpu are stubbed out)");
+            ImGui::Separator();
             ui::Toggle("mesh chams", &mesh_chams_enabled);
             if (mesh_chams_enabled) {
                 ImGui::ColorEdit4("mesh color", mesh_chams_color);

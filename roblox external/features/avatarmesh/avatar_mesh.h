@@ -33,8 +33,13 @@ namespace avatarmesh {
         std::vector<mesh_part> parts;
     };
 
-    // implemented in avatar_mesh.cpp (now part of the build)
-    void request_avatar_mesh(int64_t user_id, bool is_r15);
-    const avatar_mesh* get_avatar_mesh(int64_t user_id, bool is_r15);
-    const mesh_part* find_part(const avatar_mesh* mesh, const char* roblox_name, bool is_r15);
+    inline void request_avatar_mesh(uint32_t user_id, bool is_r15) {}
+    inline const avatar_mesh* get_avatar_mesh(uint32_t user_id, bool is_r15) { return nullptr; }
+    inline const mesh_part* find_part(const avatar_mesh* mesh, const char* name, bool /*is_r15*/) {
+        if (!mesh) return nullptr;
+        for (auto& p : mesh->parts) {
+            if (strcmp(p.name, name) == 0) return &p;
+        }
+        return nullptr;
+    }
 }

@@ -104,7 +104,6 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -152,7 +151,6 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <StringPooling>true</StringPooling>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -185,9 +183,6 @@
     <ClCompile Include="features\skybox_changer\skybox_changer.cpp" />
     <ClCompile Include="features\hitbox_expander\hitbox_expander.cpp" />
     <ClCompile Include="features\memorymeshchams\memorymeshchams.cpp" />
-    <ClCompile Include="features\assetmesh\asset_mesh.cpp" />
-    <ClCompile Include="features\avatarmesh\avatar_mesh.cpp" />
-    <ClCompile Include="features\mesh_gpu\mesh_gpu.cpp" />
     <ClCompile Include="features\config\config.cpp" />
     <ClCompile Include="Clipper2\CPP\Clipper2Lib\src\clipper.engine.cpp" />
     <ClCompile Include="Clipper2\CPP\Clipper2Lib\src\clipper.offset.cpp" />
