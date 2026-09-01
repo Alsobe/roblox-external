@@ -10,7 +10,6 @@
 
 #include "features/aimbot/aimbot.h"
 #include "features/esp/esp.h"
-#include "features/esp_preview/esp_preview.h"
 #include "features/flight/flight.h"
 #include "features/noclip/noclip.h"
 #include "features/walkspeed/walkspeed.h"
@@ -67,7 +66,6 @@ namespace discord_overlay {
             }
             ImGui::SetNextWindowSize(ImVec2(520, 480), ImGuiCond_FirstUseEver);
             RenderMenu();
-            if (esp_preview_3d) features::RenderESPPreview();
         }
     }
 }

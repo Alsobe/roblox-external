@@ -109,7 +109,6 @@ inline bool memory_union_chams = true;
 inline bool memory_outline_chams = false;
 inline float memory_outline_chams_color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-inline bool esp_preview_3d = false;
 inline bool skeleton = false;
 inline float menu_alpha = 1.0f;
 

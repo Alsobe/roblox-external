@@ -4,6 +4,7 @@
 #include <vector>
 #include <mutex>
 #include <string>
+#include <cfloat>
 #include "imgui/imgui.h"
 #include "globals.h"
 #include "memory.h"
@@ -69,8 +70,14 @@ static bool keybind_button(const char* label, int& key) {
 }
 
 void RenderMenu() {
-    ImGui::Begin("roblox external");
-    if (ImGui::BeginTabBar("tabs")) {
+    // start at a comfortable size, stay freely resizable, and never let it be
+    // dragged smaller than the tab bar needs
+    ImGui::SetNextWindowSize(ImVec2(760.0f, 560.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSizeConstraints(ImVec2(520.0f, 360.0f), ImVec2(FLT_MAX, FLT_MAX));
+
+    ImGui::Begin("roblox external", nullptr, ImGuiWindowFlags_NoCollapse);
+
+    if (ImGui::BeginTabBar("tabs", ImGuiTabBarFlags_FittingPolicyScroll)) {
         if (ImGui::BeginTabItem("aimbot")) {
             ImGui::Checkbox("enabled", &aimbot_enabled);
             ImGui::Combo("aim type", &aimbot_aim_type, "camera\0mouse\0");
@@ -85,7 +92,6 @@ void RenderMenu() {
             ImGui::SliderFloat("smooth y", &smoothing_y, 2.0f, 20.0f, "%.1f");
             ImGui::SliderFloat("fov size", &fov_size, 10.0f, 500.0f);
             ImGui::Checkbox("show fov", &show_fov);
-            keybind_button("aimbot key", aimbot_keybind);
             ImGui::EndTabItem();
         }
 
@@ -128,7 +134,6 @@ void RenderMenu() {
             ImGui::Checkbox("china hat", &chinahat);
             if (chinahat) ImGui::ColorEdit4("hat color", chinahat_color);
             ImGui::Separator();
-            ImGui::Checkbox("3d esp preview", &esp_preview_3d);
             ImGui::EndTabItem();
         }
 
@@ -161,23 +166,21 @@ void RenderMenu() {
         }
 
         if (ImGui::BeginTabItem("misc")) {
+            ImGui::TextDisabled("set keys for these in the keybinds tab");
+            ImGui::Separator();
             ImGui::Checkbox("noclip", &noclip_enabled);
-            keybind_button("noclip key", noclip_keybind);
             ImGui::Separator();
             ImGui::Checkbox("walkspeed", &walkspeed_enabled);
             if (walkspeed_enabled) ImGui::SliderFloat("speed", &walkspeed_value, 0.0f, 200.0f);
-            keybind_button("speed key", walkspeed_keybind);
             ImGui::Separator();
             ImGui::Checkbox("flight", &flight_enabled);
             if (flight_enabled) {
                 ImGui::SliderFloat("fly speed", &flight_value, 0.0f, 200.0f);
                 ImGui::TextDisabled("hold key + wasd, space = up, lshift = down");
             }
-            keybind_button("flight key", flight_keybind);
             ImGui::Separator();
             ImGui::Checkbox("click teleport", &click_teleport_enabled);
             if (click_teleport_enabled) ImGui::SliderFloat("tp distance", &click_teleport_distance, 5.0f, 200.0f, "%.0f studs");
-            keybind_button("teleport key", click_teleport_keybind);
             ImGui::Separator();
             ImGui::Checkbox("korblox", &korblox_enabled);
 

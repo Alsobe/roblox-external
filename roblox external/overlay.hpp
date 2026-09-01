@@ -409,13 +409,16 @@ namespace discord_overlay
         s.FrameBorderSize   = 1.0f;
         s.TabBorderSize     = 0.0f;
 
-        s.WindowPadding     = ImVec2(14, 14);
-        s.FramePadding      = ImVec2(10, 6);
-        s.ItemSpacing       = ImVec2(10, 8);
-        s.ItemInnerSpacing  = ImVec2(8, 6);
-        s.ScrollbarSize     = 12.0f;
-        s.GrabMinSize       = 10.0f;
+        s.WindowPadding     = ImVec2(16, 16);
+        s.FramePadding      = ImVec2(14, 8);   // wider tabs so labels aren't clipped
+        s.ItemSpacing       = ImVec2(12, 10);
+        s.ItemInnerSpacing  = ImVec2(10, 8);
+        s.CellPadding       = ImVec2(8, 6);
+        s.ScrollbarSize     = 14.0f;
+        s.GrabMinSize       = 12.0f;
         s.WindowTitleAlign  = ImVec2(0.5f, 0.5f);
+        s.SeparatorTextBorderSize = 2.0f;
+        s.SeparatorTextPadding    = ImVec2(20, 6);
 
         ImVec4* c = s.Colors;
 
@@ -492,7 +495,32 @@ namespace discord_overlay
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-        io.Fonts->AddFontDefault();
+        // load a modern system font instead of imgui's tiny bitmap default.
+        // segoe ui ships with every supported version of windows; fall back to
+        // tahoma, then the built-in font, so this can never leave us fontless.
+        {
+            ImFontConfig cfg;
+            cfg.OversampleH = 2;
+            cfg.OversampleV = 2;
+            cfg.PixelSnapH  = true;
+
+            const char* candidates[] = {
+                "C:\\Windows\\Fonts\\segoeui.ttf",
+                "C:\\Windows\\Fonts\\tahoma.ttf",
+                "C:\\Windows\\Fonts\\arial.ttf",
+            };
+
+            ImFont* loaded = nullptr;
+            for (const char* path : candidates) {
+                // check the file exists first - AddFontFromFileTTF asserts in debug builds
+                DWORD attrs = GetFileAttributesA(path);
+                if (attrs == INVALID_FILE_ATTRIBUTES || (attrs & FILE_ATTRIBUTE_DIRECTORY))
+                    continue;
+                loaded = io.Fonts->AddFontFromFileTTF(path, 18.0f, &cfg);
+                if (loaded) break;
+            }
+            if (!loaded) io.Fonts->AddFontDefault();
+        }
 
         apply_theme();
 
