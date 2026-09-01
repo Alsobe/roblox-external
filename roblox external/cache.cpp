@@ -14,7 +14,6 @@ namespace cache {
     static std::vector<EspEntity> s_entities;
     static std::vector<SkeletonEntity> s_skeletons;
     static LocalPlayerData s_local{};
-    static bool s_phf = false;
     static bool s_running = false;
     static HANDLE s_thread = nullptr;
 
@@ -50,10 +49,9 @@ namespace cache {
         return false;
     }
 
-    static bool build_skel(instance ch, SkeletonEntity& s, bool phf) {
+    static bool build_skel(instance ch, SkeletonEntity& s) {
         if (!ch.is_valid()) return false;
         s.is_r15 = is_r15(ch);
-        s.is_phantom_forces = phf;
         find_part(ch, "Head", s.head);
         find_part(ch, "UpperTorso", s.upper_torso);
         find_part(ch, "LowerTorso", s.lower_torso);
@@ -70,10 +68,6 @@ namespace cache {
             find_part(ch, "LeftLowerLeg", s.left_lower_leg);
             find_part(ch, "RightUpperLeg", s.right_upper_leg);
             find_part(ch, "RightLowerLeg", s.right_lower_leg);
-        }
-        if (phf) {
-            const char* pf[] = { "RightUpperArm", "LeftUpperArm", "RightUpperLeg", "LeftUpperLeg", "Head" };
-            for (int i = 0; i < 5; ++i) find_part(ch, pf[i], s.pf_limbs[i]);
         }
         return s.head != 0 || s.upper_torso != 0;
     }
@@ -190,7 +184,6 @@ namespace cache {
             local_team = get_player_team(local);
         }
 
-        bool phf = IsPhantomForces();
         for (auto& p : plrs.get_children()) {
             if (!p.is_valid()) continue;
             if (local.is_valid() && p.address == local.address) continue;
@@ -199,7 +192,7 @@ namespace cache {
             SkeletonEntity s{};
             s.player_address = p.address;
             s.team_address = get_player_team(p);
-            if (build_skel(ch, s, phf)) result.push_back(s);
+            if (build_skel(ch, s)) result.push_back(s);
         }
 
         if (team_check && local_team != 0) {
@@ -288,10 +281,4 @@ namespace cache {
         return s_local;
     }
 
-    bool IsPhantomForces() {
-        if (!g_base_address) return false;
-        instance dm = game::ReadDatamodel(g_base_address);
-        if (!dm.is_valid()) return false;
-        return game::GetGameName(g_base_address).find("Phantom") != std::string::npos;
-    }
 }

@@ -1,8 +1,13 @@
 #include <Windows.h>
 #include <cstring>
 #include <cstdio>
+#include <vector>
 #include "imgui/imgui.h"
 #include "globals.h"
+#include "memory.h"
+#include "game.h"
+#include "cache.h"
+#include "offsets.h"
 #include "features/skybox_changer/skybox_changer.h"
 #include "features/config/config.h"
 
@@ -166,8 +171,7 @@ void RenderMenu() {
             keybind_button("flight key", flight_keybind);
             ImGui::Separator();
             ImGui::Checkbox("korblox", &korblox_enabled);
-            ImGui::Separator();
-            ImGui::Checkbox("rivals skin changer", &rivals_skin_changer_enabled);
+
             ImGui::EndTabItem();
         }
 
@@ -185,11 +189,60 @@ void RenderMenu() {
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("blade ball")) {
-            ImGui::Checkbox("auto parry", &blade_ball_auto_parry);
-            ImGui::Checkbox("ball esp", &blade_ball_ball_esp);
-            ImGui::SliderFloat("parry dist", &blade_ball_parry_distance, 4.0f, 30.0f, "%.1f");
-            ImGui::SliderFloat("parry height", &blade_ball_parry_height, 2.0f, 15.0f, "%.1f");
+        if (ImGui::BeginTabItem("debug")) {
+            ImGui::TextWrapped("if a feature does nothing, check these values. "
+                               "0x0 or 'INVALID' means that offset is wrong for your client version.");
+            ImGui::Separator();
+
+            ImGui::Text("base address   : 0x%llX", (unsigned long long)g_base_address);
+
+            instance ve = read<instance>(g_base_address + Offsets::VisualEngine::Pointer);
+            ImGui::Text("visual engine  : 0x%llX %s", (unsigned long long)ve.address,
+                        ve.is_valid() ? "" : "<- INVALID");
+
+            instance dm = game::ReadDatamodel(g_base_address);
+            ImGui::Text("datamodel      : 0x%llX %s", (unsigned long long)dm.address,
+                        dm.is_valid() ? "" : "<- INVALID");
+
+            if (dm.is_valid()) {
+                ImGui::Text("game name      : %s", dm.get_name().c_str());
+                ImGui::Text("place id       : %llu",
+                            (unsigned long long)read<uint64_t>(dm.address + Offsets::DataModel::PlaceId));
+            }
+
+            ImGui::Separator();
+
+            // world-to-screen inputs - esp/aimbot/chams all depend on these
+            if (ve.is_valid()) {
+                float view[16]{};
+                float dims[2]{};
+                read_raw(ve.address + Offsets::VisualEngine::ViewMatrix, view, sizeof(view));
+                read_raw(ve.address + Offsets::VisualEngine::Dimensions, dims, sizeof(dims));
+
+                ImGui::Text("viewport       : %.0f x %.0f %s", dims[0], dims[1],
+                            (dims[0] > 0.0f && dims[1] > 0.0f) ? "" : "<- INVALID (Dimensions offset wrong)");
+                ImGui::Text("view matrix    : %.2f %.2f %.2f %.2f", view[0], view[1], view[2], view[3]);
+                ImGui::Text("                 %.2f %.2f %.2f %.2f", view[4], view[5], view[6], view[7]);
+
+                bool all_zero = true;
+                for (int i = 0; i < 16; ++i) if (view[i] != 0.0f) { all_zero = false; break; }
+                if (all_zero) ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1),
+                                                 "view matrix is all zero - ViewMatrix offset is wrong");
+            }
+
+            ImGui::Separator();
+
+            const cache::LocalPlayerData& lp = cache::GetLocalPlayer();
+            ImGui::Text("local player   : %s", lp.valid ? "ok" : "INVALID");
+            ImGui::Text("humanoid       : 0x%llX", (unsigned long long)lp.humanoid_address);
+            ImGui::Text("hrp primitive  : 0x%llX", (unsigned long long)lp.hrp_primitive);
+            ImGui::Text("local pos      : %.1f, %.1f, %.1f", lp.x, lp.y, lp.z);
+
+            std::vector<cache::EspEntity> ents = cache::GetEspEntities();
+            ImGui::Text("cached players : %d", (int)ents.size());
+            if (ents.empty())
+                ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1), "no other players cached (join a populated server)");
+
             ImGui::EndTabItem();
         }
 

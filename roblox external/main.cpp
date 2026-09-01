@@ -14,10 +14,8 @@
 #include "features/flight/flight.h"
 #include "features/noclip/noclip.h"
 #include "features/walkspeed/walkspeed.h"
-#include "features/blade_ball/blade_ball.h"
 #include "features/rage/rage.h"
 #include "features/skybox_changer/skybox_changer.h"
-#include "features/rivals_skin_changer/rivals_skin_changer.h"
 #include "features/hitbox_expander/hitbox_expander.h"
 #include "features/memorymeshchams/memorymeshchams.h"
 
@@ -58,7 +56,6 @@ namespace discord_overlay {
             if (render_expanded_hitbox) features::RenderExpandedHitbox();
         }
         if (memory_mesh_chams_enabled) features::RenderMemoryMeshChams();
-        if (blade_ball_ball_esp) features::RenderBladeBallESP();
         if (aimbot_enabled) features::RenderFOV();
 
         if (g_state.menu_open) {
@@ -81,9 +78,7 @@ static void FeatureLoop() {
             if (flight_enabled) features::RunFlight();
             if (noclip_enabled) features::RunNoclip();
             if (walkspeed_enabled) features::RunWalkspeed();
-            if (blade_ball_auto_parry) features::RunBladeBallAutoParry();
             if (skybox_changer_enabled) features::RunSkyboxChanger();
-            if (rivals_skin_changer_enabled) features::RunRivalsSkinChanger();
             if (hitbox_expander_enabled) features::RunHitboxExpander();
         }
         Sleep(1);

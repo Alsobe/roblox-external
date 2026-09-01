@@ -34,11 +34,9 @@ namespace cache {
         uintptr_t right_upper_arm = 0, right_lower_arm = 0;
         uintptr_t left_upper_leg = 0, left_lower_leg = 0;
         uintptr_t right_upper_leg = 0, right_lower_leg = 0;
-        uintptr_t pf_limbs[5]{};
         uintptr_t player_address = 0;
         uintptr_t team_address = 0;
         bool is_r15 = false;
-        bool is_phantom_forces = false;
     };
 
     struct LocalPlayerData {
@@ -52,7 +50,6 @@ namespace cache {
     std::vector<EspEntity> GetEspEntities();
     std::vector<SkeletonEntity> GetSkeletonEntities();
     LocalPlayerData GetLocalPlayer();
-    bool IsPhantomForces();
     void StartThread();
     void StopThread();
 }

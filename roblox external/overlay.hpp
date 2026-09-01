@@ -348,6 +348,101 @@ namespace discord_overlay
         return true;
     }
 
+    // glassy red theme - translucent panels so the game shows through, red accents
+    inline void apply_theme()
+    {
+        ImGuiStyle& s = ImGui::GetStyle();
+
+        s.WindowRounding    = 10.0f;
+        s.ChildRounding     = 8.0f;
+        s.FrameRounding     = 6.0f;
+        s.PopupRounding     = 8.0f;
+        s.ScrollbarRounding = 8.0f;
+        s.GrabRounding      = 6.0f;
+        s.TabRounding       = 8.0f;
+
+        s.WindowBorderSize  = 1.0f;
+        s.ChildBorderSize   = 1.0f;
+        s.PopupBorderSize   = 1.0f;
+        s.FrameBorderSize   = 1.0f;
+        s.TabBorderSize     = 0.0f;
+
+        s.WindowPadding     = ImVec2(14, 14);
+        s.FramePadding      = ImVec2(10, 6);
+        s.ItemSpacing       = ImVec2(10, 8);
+        s.ItemInnerSpacing  = ImVec2(8, 6);
+        s.ScrollbarSize     = 12.0f;
+        s.GrabMinSize       = 10.0f;
+        s.WindowTitleAlign  = ImVec2(0.5f, 0.5f);
+
+        ImVec4* c = s.Colors;
+
+        const ImVec4 red        = ImVec4(0.86f, 0.13f, 0.24f, 1.00f);
+        const ImVec4 red_dim    = ImVec4(0.86f, 0.13f, 0.24f, 0.55f);
+        const ImVec4 red_soft   = ImVec4(0.86f, 0.13f, 0.24f, 0.28f);
+        const ImVec4 glass      = ImVec4(0.05f, 0.05f, 0.07f, 0.82f); // translucent = glassy
+        const ImVec4 glass_deep = ImVec4(0.03f, 0.03f, 0.05f, 0.90f);
+        const ImVec4 glass_soft = ImVec4(0.10f, 0.10f, 0.13f, 0.60f);
+
+        c[ImGuiCol_Text]                 = ImVec4(0.94f, 0.94f, 0.96f, 1.00f);
+        c[ImGuiCol_TextDisabled]         = ImVec4(0.45f, 0.45f, 0.50f, 1.00f);
+        c[ImGuiCol_WindowBg]             = glass;
+        c[ImGuiCol_ChildBg]              = ImVec4(0.08f, 0.08f, 0.10f, 0.45f);
+        c[ImGuiCol_PopupBg]              = glass_deep;
+        c[ImGuiCol_Border]               = ImVec4(0.86f, 0.13f, 0.24f, 0.35f);
+        c[ImGuiCol_BorderShadow]         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+        c[ImGuiCol_FrameBg]              = glass_soft;
+        c[ImGuiCol_FrameBgHovered]       = red_soft;
+        c[ImGuiCol_FrameBgActive]        = red_dim;
+
+        c[ImGuiCol_TitleBg]              = glass_deep;
+        c[ImGuiCol_TitleBgActive]        = ImVec4(0.16f, 0.04f, 0.07f, 0.95f);
+        c[ImGuiCol_TitleBgCollapsed]     = ImVec4(0.05f, 0.05f, 0.07f, 0.60f);
+        c[ImGuiCol_MenuBarBg]            = glass_deep;
+
+        c[ImGuiCol_ScrollbarBg]          = ImVec4(0.03f, 0.03f, 0.05f, 0.40f);
+        c[ImGuiCol_ScrollbarGrab]        = red_soft;
+        c[ImGuiCol_ScrollbarGrabHovered] = red_dim;
+        c[ImGuiCol_ScrollbarGrabActive]  = red;
+
+        c[ImGuiCol_CheckMark]            = red;
+        c[ImGuiCol_SliderGrab]           = red_dim;
+        c[ImGuiCol_SliderGrabActive]     = red;
+
+        c[ImGuiCol_Button]               = glass_soft;
+        c[ImGuiCol_ButtonHovered]        = red_soft;
+        c[ImGuiCol_ButtonActive]         = red_dim;
+
+        c[ImGuiCol_Header]               = red_soft;
+        c[ImGuiCol_HeaderHovered]        = red_dim;
+        c[ImGuiCol_HeaderActive]         = red;
+
+        c[ImGuiCol_Separator]            = ImVec4(0.86f, 0.13f, 0.24f, 0.25f);
+        c[ImGuiCol_SeparatorHovered]     = red_dim;
+        c[ImGuiCol_SeparatorActive]      = red;
+
+        c[ImGuiCol_ResizeGrip]           = red_soft;
+        c[ImGuiCol_ResizeGripHovered]    = red_dim;
+        c[ImGuiCol_ResizeGripActive]     = red;
+
+        c[ImGuiCol_Tab]                  = ImVec4(0.10f, 0.05f, 0.07f, 0.80f);
+        c[ImGuiCol_TabHovered]           = red_dim;
+        c[ImGuiCol_TabActive]            = ImVec4(0.35f, 0.07f, 0.13f, 0.95f);
+        c[ImGuiCol_TabUnfocused]         = ImVec4(0.08f, 0.04f, 0.06f, 0.80f);
+        c[ImGuiCol_TabUnfocusedActive]   = ImVec4(0.22f, 0.05f, 0.09f, 0.90f);
+
+        c[ImGuiCol_PlotLines]            = red;
+        c[ImGuiCol_PlotLinesHovered]     = ImVec4(1.00f, 0.35f, 0.45f, 1.00f);
+        c[ImGuiCol_PlotHistogram]        = red;
+        c[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.35f, 0.45f, 1.00f);
+
+        c[ImGuiCol_TextSelectedBg]       = red_dim;
+        c[ImGuiCol_DragDropTarget]       = red;
+        c[ImGuiCol_NavHighlight]         = red;
+        c[ImGuiCol_ModalWindowDimBg]     = ImVec4(0.00f, 0.00f, 0.00f, 0.45f);
+    }
+
     inline bool init_imgui()
     {
         ImGui::CreateContext();
@@ -356,6 +451,8 @@ namespace discord_overlay
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
         io.Fonts->AddFontDefault();
+
+        apply_theme();
 
         ImGui_ImplWin32_Init(g_state.window);
         ImGui_ImplDX11_Init(g_device, g_context);

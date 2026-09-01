@@ -67,10 +67,6 @@ inline float flight_value = 50.0f;
 inline bool noclip_enabled = false;
 inline int noclip_keybind = 0;
 
-inline bool blade_ball_auto_parry = false;
-inline bool blade_ball_ball_esp = false;
-inline float blade_ball_parry_distance = 12.0f;
-inline float blade_ball_parry_height = 6.0f;
 
 inline bool korblox_enabled = false;
 
@@ -78,7 +74,6 @@ inline bool skybox_changer_enabled = false;
 inline int skybox_type = 0;
 inline char skybox_debug_msg[256]{};
 
-inline bool rivals_skin_changer_enabled = false;
 
 inline bool memory_mesh_chams_enabled = false;
 inline float memory_mesh_chams_color[4] = { 1.0f, 0.0f, 0.0f, 0.6f };

@@ -295,73 +295,7 @@ namespace features {
         return true;
     }
 
-    static void GetPFPartSize(const char* part_name, Vec3& size) {
-        if (strcmp(part_name, "UpperTorso") == 0) { size.x = 2.0f; size.y = 2.0f; size.z = 1.0f; return; }
-        if (strcmp(part_name, "Head") == 0) { size.x = 1.0f; size.y = 1.0f; size.z = 1.0f; return; }
-        size.x = 1.0f; size.y = 2.0f; size.z = 1.0f;
-    }
 
-    static bool ComputeBoxForPFEntity(const cache::EspEntity& entity, const Matrix4& view, const Vec2& viewport, Box2D& out_box) {
-        if (entity.primitive_count == 0) {
-            out_box.valid = false;
-            return false;
-        }
-        bool has_point = false;
-        float min_x = 0.0f, min_y = 0.0f, max_x = 0.0f, max_y = 0.0f;
-        static const float corners_local[8][3] = {
-            {-1,-1,-1},{1,-1,-1},{-1,1,-1},{1,1,-1},{-1,-1,1},{1,-1,1},{-1,1,1},{1,1,1}
-        };
-        for (size_t i = 0; i < entity.primitive_count; ++i) {
-            uintptr_t primitive = entity.primitives[i];
-            if (!is_valid_address(primitive)) continue;
-            Vec3 pos{};
-            if (!ReadVec3(primitive + Offsets::Primitive::Position, pos)) continue;
-            Vec3 size{};
-            GetPFPartSize(entity.part_names[i], size);
-            float rot[9] = {};
-            if (!ReadRaw(primitive + Offsets::Primitive::Rotation, rot, sizeof(rot))) continue;
-            float hx = size.x * 0.5f, hy = size.y * 0.5f, hz = size.z * 0.5f;
-            for (int c = 0; c < 8; ++c) {
-                float lx = corners_local[c][0] * hx;
-                float ly = corners_local[c][1] * hy;
-                float lz = corners_local[c][2] * hz;
-                Vec3 world = {
-                    pos.x + rot[0] * lx + rot[1] * ly + rot[2] * lz,
-                    pos.y + rot[3] * lx + rot[4] * ly + rot[5] * lz,
-                    pos.z + rot[6] * lx + rot[7] * ly + rot[8] * lz
-                };
-                Vec2 pt{};
-                if (WorldToScreen(world, pt, view, viewport)) {
-                    if (!has_point) {
-                        min_x = max_x = pt.x;
-                        min_y = max_y = pt.y;
-                        has_point = true;
-                    } else {
-                        if (pt.x < min_x) min_x = pt.x;
-                        if (pt.x > max_x) max_x = pt.x;
-                        if (pt.y < min_y) min_y = pt.y;
-                        if (pt.y > max_y) max_y = pt.y;
-                    }
-                }
-            }
-        }
-        if (!has_point) {
-            out_box.valid = false;
-            return false;
-        }
-        float w = max_x - min_x;
-        float h = max_y - min_y;
-        if (w <= 1.0f || h <= 1.0f) {
-            out_box.valid = false;
-            return false;
-        }
-        out_box.min_x = min_x;
-        out_box.min_y = min_y;
-        out_box.max_x = max_x;
-        out_box.max_y = max_y;
-        out_box.valid = true;
-        return true;
-    }
 
     static bool ReadPos(uintptr_t primitive, Vec3& out) {
         if (!is_valid_address(primitive)) return false;
@@ -475,25 +409,7 @@ namespace features {
         for (const cache::SkeletonEntity& skel : skeletons) {
             if (!skel.head || !skel.upper_torso) continue;
 
-            if (skel.is_phantom_forces) {
-                Vec2 head_scr, torso_scr;
-                if (PartToScreen(skel.head, view, viewport, head_scr) && 
-                    PartToScreen(skel.upper_torso, view, viewport, torso_scr)) {
-                    draw->AddLine(ImVec2(head_scr.x, head_scr.y), ImVec2(torso_scr.x, torso_scr.y), black, 3.0f);
-                    draw->AddLine(ImVec2(head_scr.x, head_scr.y), ImVec2(torso_scr.x, torso_scr.y), color, 1.0f);
-                }
-                
-                for (int i = 0; i < 5; ++i) {
-                    if (skel.pf_limbs[i]) {
-                        Vec2 limb_scr;
-                        if (PartToScreen(skel.pf_limbs[i], view, viewport, limb_scr)) {
-                            draw->AddLine(ImVec2(torso_scr.x, torso_scr.y), ImVec2(limb_scr.x, limb_scr.y), black, 3.0f);
-                            draw->AddLine(ImVec2(torso_scr.x, torso_scr.y), ImVec2(limb_scr.x, limb_scr.y), color, 1.0f);
-                        }
-                    }
-                }
-            }
-            else if (skel.is_r15) {
+            if (skel.is_r15) {
                 DrawBone(draw, skel.head, skel.upper_torso, view, viewport, color);
                 DrawBone(draw, skel.upper_torso, skel.lower_torso, view, viewport, color);
                 DrawBone(draw, skel.upper_torso, skel.left_upper_arm, view, viewport, color);
@@ -1222,11 +1138,7 @@ namespace features {
             }
 
             Box2D box{};
-            if (cache::IsPhantomForces()) {
-                if (!ComputeBoxForPFEntity(entity, view, viewport, box)) continue;
-            } else {
-                if (!ComputeBoxForPrimitives(entity, view, viewport, box)) continue;
-            }
+            if (!ComputeBoxForPrimitives(entity, view, viewport, box)) continue;
             if (!box.valid) continue;
 
             float x1 = floorf(box.min_x);

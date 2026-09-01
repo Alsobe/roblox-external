@@ -151,17 +151,11 @@ namespace config {
         WriteEntry(f, "noclip_enabled", noclip_enabled);
         WriteEntry(f, "noclip_keybind", noclip_keybind);
 
-        // blade ball
-        WriteEntry(f, "blade_ball_auto_parry", blade_ball_auto_parry);
-        WriteEntry(f, "blade_ball_ball_esp", blade_ball_ball_esp);
-        WriteEntry(f, "blade_ball_parry_distance", blade_ball_parry_distance);
-        WriteEntry(f, "blade_ball_parry_height", blade_ball_parry_height);
 
         // misc features
         WriteEntry(f, "korblox_enabled", korblox_enabled);
         WriteEntry(f, "skybox_changer_enabled", skybox_changer_enabled);
         WriteEntry(f, "skybox_type", skybox_type);
-        WriteEntry(f, "rivals_skin_changer_enabled", rivals_skin_changer_enabled);
 
         // memory chams
         WriteEntry(f, "memory_mesh_chams_enabled", memory_mesh_chams_enabled);
@@ -249,17 +243,11 @@ namespace config {
             if (ReadLine(line, "noclip_enabled", noclip_enabled)) continue;
             if (ReadLine(line, "noclip_keybind", noclip_keybind)) continue;
 
-            // blade ball
-            if (ReadLine(line, "blade_ball_auto_parry", blade_ball_auto_parry)) continue;
-            if (ReadLine(line, "blade_ball_ball_esp", blade_ball_ball_esp)) continue;
-            if (ReadLine(line, "blade_ball_parry_distance", blade_ball_parry_distance)) continue;
-            if (ReadLine(line, "blade_ball_parry_height", blade_ball_parry_height)) continue;
 
             // misc features
             if (ReadLine(line, "korblox_enabled", korblox_enabled)) continue;
             if (ReadLine(line, "skybox_changer_enabled", skybox_changer_enabled)) continue;
             if (ReadLine(line, "skybox_type", skybox_type)) continue;
-            if (ReadLine(line, "rivals_skin_changer_enabled", rivals_skin_changer_enabled)) continue;
 
             // memory chams
             if (ReadLine(line, "memory_mesh_chams_enabled", memory_mesh_chams_enabled)) continue;
