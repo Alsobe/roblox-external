@@ -33,12 +33,13 @@ namespace assetmesh {
         size_t pending_requests = 0;
     };
 
-    inline uint64_t get_mesh_asset_id_from_part(uintptr_t part_address) { return 0; }
-    inline uint64_t get_mesh_asset_id_for_part(uint32_t user_id, const char* part_name, bool is_r15) { return 0; }
-    inline uint64_t get_default_asset_for_part(const char* part_name, bool is_r15) { return 0; }
-    inline std::string get_mesh_id_string_from_part(uintptr_t part_address) { return ""; }
-    inline void request_avatar_assets(uint32_t user_id) {}
-    inline void request_mesh(uint64_t asset_id) {}
-    inline std::shared_ptr<const parsed_mesh> get_mesh(uint64_t asset_id) { return nullptr; }
-    inline debug_stats get_debug_stats() { return {}; }
+    // implemented in asset_mesh.cpp (now part of the build)
+    uint64_t get_mesh_asset_id_from_part(uintptr_t part_address);
+    uint64_t get_mesh_asset_id_for_part(int64_t user_id, const char* part_name, bool is_r15);
+    uint64_t get_default_asset_for_part(const char* part_name, bool is_r15);
+    std::string get_mesh_id_string_from_part(uintptr_t part_address);
+    void request_avatar_assets(int64_t user_id);
+    void request_mesh(uint64_t asset_id);
+    std::shared_ptr<const parsed_mesh> get_mesh(uint64_t asset_id);
+    debug_stats get_debug_stats();
 }

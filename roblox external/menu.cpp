@@ -243,11 +243,33 @@ void RenderMenu() {
         }
 
         ImVec4 accent(ui_accent_color[0], ui_accent_color[1], ui_accent_color[2], 1.0f);
-        st.Colors[ImGuiCol_Border]          = ImVec4(accent.x, accent.y, accent.z, 0.55f);
-        st.Colors[ImGuiCol_CheckMark]       = accent;
-        st.Colors[ImGuiCol_SliderGrabActive]= accent;
-        st.Colors[ImGuiCol_HeaderActive]    = accent;
-        st.Colors[ImGuiCol_SeparatorActive] = accent;
+        st.Colors[ImGuiCol_Border]              = ImVec4(accent.x, accent.y, accent.z, 0.55f);
+        st.Colors[ImGuiCol_CheckMark]           = accent;
+        st.Colors[ImGuiCol_SliderGrab]          = ImVec4(accent.x, accent.y, accent.z, 0.55f);
+        st.Colors[ImGuiCol_SliderGrabActive]    = accent;
+        st.Colors[ImGuiCol_Header]              = ImVec4(accent.x, accent.y, accent.z, 0.28f);
+        st.Colors[ImGuiCol_HeaderHovered]       = ImVec4(accent.x, accent.y, accent.z, 0.55f);
+        st.Colors[ImGuiCol_HeaderActive]        = accent;
+        // dividers - these were the ones staying red
+        st.Colors[ImGuiCol_Separator]           = ImVec4(accent.x, accent.y, accent.z, 0.45f);
+        st.Colors[ImGuiCol_SeparatorHovered]    = ImVec4(accent.x, accent.y, accent.z, 0.75f);
+        st.Colors[ImGuiCol_SeparatorActive]     = accent;
+        st.Colors[ImGuiCol_ButtonHovered]       = ImVec4(accent.x, accent.y, accent.z, 0.45f);
+        st.Colors[ImGuiCol_ButtonActive]        = accent;
+        st.Colors[ImGuiCol_ScrollbarGrab]       = ImVec4(accent.x, accent.y, accent.z, 0.35f);
+        st.Colors[ImGuiCol_ScrollbarGrabHovered]= ImVec4(accent.x, accent.y, accent.z, 0.60f);
+        st.Colors[ImGuiCol_ScrollbarGrabActive] = accent;
+        st.Colors[ImGuiCol_ResizeGrip]          = ImVec4(accent.x, accent.y, accent.z, 0.30f);
+        st.Colors[ImGuiCol_ResizeGripHovered]   = ImVec4(accent.x, accent.y, accent.z, 0.60f);
+        st.Colors[ImGuiCol_ResizeGripActive]    = accent;
+        st.Colors[ImGuiCol_TextSelectedBg]      = ImVec4(accent.x, accent.y, accent.z, 0.45f);
+        st.Colors[ImGuiCol_NavHighlight]        = accent;
+        st.Colors[ImGuiCol_PlotLines]           = accent;
+        st.Colors[ImGuiCol_PlotHistogram]       = accent;
+        st.Colors[ImGuiCol_DragDropTarget]      = accent;
+        st.Colors[ImGuiCol_Tab]                 = ImVec4(accent.x * 0.4f, accent.y * 0.4f, accent.z * 0.4f, 0.80f);
+        st.Colors[ImGuiCol_TabHovered]          = ImVec4(accent.x, accent.y, accent.z, 0.60f);
+        st.Colors[ImGuiCol_TabActive]           = ImVec4(accent.x * 0.7f, accent.y * 0.7f, accent.z * 0.7f, 0.95f);
 
         // every background alpha scales with the slider, not just the main window
         float a = 1.0f - (ui_transparency / 100.0f);
@@ -598,6 +620,11 @@ void RenderMenu() {
                 float vel[3] = {};
                 read_raw(prim + Offsets::Primitive::AssemblyLinearVelocity, vel, sizeof(vel));
                 ImGui::Text("velocity read   : %.1f, %.1f, %.1f", vel[0], vel[1], vel[2]);
+
+                float psz[3] = {};
+                read_raw(prim + Offsets::Primitive::Size, psz, sizeof(psz));
+                ImGui::Text("part size read  : %.2f, %.2f, %.2f %s", psz[0], psz[1], psz[2],
+                            (psz[0] > 0.05f || psz[1] > 0.05f) ? "" : "<- zero, esp boxes will sit high");
 
                 static char test_result[192] = "not run yet";
 

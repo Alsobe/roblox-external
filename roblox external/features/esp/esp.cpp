@@ -243,6 +243,13 @@ namespace features {
             if (!ReadVec3(primitive + Offsets::Primitive::Position, pos)) continue;
             if (!ReadVec3(primitive + Offsets::Primitive::Size, size)) continue;
 
+            // A part whose size reads back as ~0 collapses its 8 corners onto the
+            // part's centre. With the feet contributing only their centre point the
+            // whole box ends up sitting slightly above the character, so fall back
+            // to a sane default extent instead.
+            if (size.x < 0.05f && size.y < 0.05f && size.z < 0.05f)
+                size = { 1.0f, 1.0f, 1.0f };
+
             float hx = size.x * 0.5f;
             float hy = size.y * 0.5f;
             float hz = size.z * 0.5f;

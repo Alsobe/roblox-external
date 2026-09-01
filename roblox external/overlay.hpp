@@ -29,7 +29,7 @@ namespace discord_overlay
         IDXGISwapChain*       swap_chain  = nullptr;
         ID3D11RenderTargetView* rtv       = nullptr;
         D3D_FEATURE_LEVEL     feature_level{};
-        bool                  menu_open   = false;
+        bool                  menu_open   = true;   // start with the menu visible
         bool                  centered_once = false;
         HWND                  prev_foreground = nullptr;
     };
