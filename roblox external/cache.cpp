@@ -6,12 +6,15 @@
 #include <Windows.h>
 #include <algorithm>
 #include <cstring>
+#include <memory>
 
 struct vec3_t { float x, y, z; };
 
 namespace cache {
     static std::mutex s_mutex;
     static std::vector<EspEntity> s_entities;
+    static EspSnapshot s_entity_snapshot;
+    static SkelSnapshot s_skel_snapshot;
     static std::vector<SkeletonEntity> s_skeletons;
     static LocalPlayerData s_local{};
     static bool s_running = false;
@@ -268,10 +271,12 @@ namespace cache {
             auto new_skeletons = fetch_skeletons();
             auto new_local = fetch_local();
 
+            auto ents = std::make_shared<const std::vector<EspEntity>>(std::move(new_entities));
+            auto skel = std::make_shared<const std::vector<SkeletonEntity>>(std::move(new_skeletons));
             {
                 std::lock_guard<std::mutex> lock(s_mutex);
-                s_entities = std::move(new_entities);
-                s_skeletons = std::move(new_skeletons);
+                s_entity_snapshot = ents;
+                s_skel_snapshot = skel;
                 s_local = new_local;
             }
             Sleep(16);
@@ -289,15 +294,20 @@ namespace cache {
         if (s_thread) { WaitForSingleObject(s_thread, 2000); CloseHandle(s_thread); s_thread = nullptr; }
     }
 
-    std::vector<EspEntity> GetEspEntities() {
+    EspSnapshot GetEspSnapshot() {
         std::lock_guard<std::mutex> lock(s_mutex);
-        return s_entities;
+        if (!s_entity_snapshot) s_entity_snapshot = std::make_shared<const std::vector<EspEntity>>();
+        return s_entity_snapshot;
     }
 
-    std::vector<SkeletonEntity> GetSkeletonEntities() {
+    SkelSnapshot GetSkeletonSnapshot() {
         std::lock_guard<std::mutex> lock(s_mutex);
-        return s_skeletons;
+        if (!s_skel_snapshot) s_skel_snapshot = std::make_shared<const std::vector<SkeletonEntity>>();
+        return s_skel_snapshot;
     }
+
+    std::vector<EspEntity> GetEspEntities() { return *GetEspSnapshot(); }
+    std::vector<SkeletonEntity> GetSkeletonEntities() { return *GetSkeletonSnapshot(); }
 
     LocalPlayerData GetLocalPlayer() {
         std::lock_guard<std::mutex> lock(s_mutex);

@@ -116,7 +116,8 @@ namespace features {
         float best_dist_sq = fov_size * fov_size;
         bool found = false;
 
-        const auto& skeletons = cache::GetSkeletonEntities();
+        auto skeletons_snap = cache::GetSkeletonSnapshot();
+        const auto& skeletons = *skeletons_snap;
         for (const auto& skel : skeletons) {
             uintptr_t part = GetPartFromSkeleton(skel, aimbot_part);
             if (!part) part = skel.head;
@@ -141,7 +142,8 @@ namespace features {
         }
 
         if (!found) {
-            const auto& entities = cache::GetEspEntities();
+            auto entities_snap = cache::GetEspSnapshot();
+            const auto& entities = *entities_snap;
             for (const auto& entity : entities) {
                 if (entity.root_x == 0.0f && entity.root_y == 0.0f && entity.root_z == 0.0f) continue;
                 if (entity.primitive_count == 0) continue;
@@ -167,7 +169,8 @@ namespace features {
     }
 
     static uintptr_t FindPartForPlayer(uintptr_t player_address) {
-        const auto& skeletons = cache::GetSkeletonEntities();
+        auto skeletons_snap = cache::GetSkeletonSnapshot();
+        const auto& skeletons = *skeletons_snap;
         for (const auto& skel : skeletons) {
             if (skel.player_address != player_address) continue;
             uintptr_t part = GetPartFromSkeleton(skel, aimbot_part);

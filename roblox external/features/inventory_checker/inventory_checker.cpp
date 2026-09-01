@@ -95,7 +95,8 @@ namespace features {
             ScreenToClient(rbx, &cursor);
 
         // pick whichever player is closest to the cursor on screen
-        std::vector<cache::EspEntity> entities = cache::GetEspEntities();
+        auto entities_snap = cache::GetEspSnapshot();
+        const auto& entities = *entities_snap;
         const cache::EspEntity* best = nullptr;
         IVec2 best_screen{};
         float best_dist = 250.0f; // px - must be reasonably close to count as "on them"

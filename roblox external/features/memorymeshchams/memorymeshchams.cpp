@@ -559,7 +559,8 @@ void RenderMemoryMeshChams() {
         return;
     }
 
-    const auto& entities = cache::GetEspEntities();
+    auto entities_snap = cache::GetEspSnapshot();
+    const auto& entities = *entities_snap;
     if (entities.empty()) {
         return;
     }

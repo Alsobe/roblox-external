@@ -565,7 +565,8 @@ void RenderMenu() {
             ImGui::Text("hrp primitive  : 0x%llX", (unsigned long long)lp.hrp_primitive);
             ImGui::Text("local pos      : %.1f, %.1f, %.1f", lp.x, lp.y, lp.z);
 
-            std::vector<cache::EspEntity> ents = cache::GetEspEntities();
+            auto ents_snap = cache::GetEspSnapshot();
+            const auto& ents = *ents_snap;
             ImGui::Text("cached players : %d", (int)ents.size());
             if (ents.empty())
                 ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1), "no other players cached (join a populated server)");
@@ -575,51 +576,62 @@ void RenderMenu() {
             ImGui::TextWrapped("flight / infinite jump / teleport all write to the root part's "
                                "Primitive. this proves whether those writes actually land.");
 
+            // NOTE: Humanoid::HumanoidRootPart (0x478) reads back as 0 on this client
+            // build, so the root part is resolved by name instead. Probe shown for info.
             if (is_valid_address(lp.humanoid_address)) {
-                uintptr_t hrp_part = read<uintptr_t>(lp.humanoid_address + Offsets::Humanoid::HumanoidRootPart);
-                ImGui::Text("hrp part (0x478): 0x%llX %s",
-                            (unsigned long long)hrp_part,
-                            is_valid_address(hrp_part) ? "" : "<- INVALID");
+                uintptr_t probe = read<uintptr_t>(lp.humanoid_address + Offsets::Humanoid::HumanoidRootPart);
+                ImGui::Text("hrp via 0x478   : 0x%llX %s",
+                            (unsigned long long)probe,
+                            is_valid_address(probe) ? "" : "(unused - offset is wrong)");
+            }
 
-                if (is_valid_address(hrp_part)) {
-                    uintptr_t prim = read<uintptr_t>(hrp_part + Offsets::BasePart::Primitive);
-                    ImGui::Text("primitive (0x188): 0x%llX %s",
-                                (unsigned long long)prim,
-                                is_valid_address(prim) ? "" : "<- INVALID");
+            uintptr_t prim = lp.hrp_primitive;   // what every feature actually writes to
+            ImGui::Text("hrp primitive   : 0x%llX %s",
+                        (unsigned long long)prim,
+                        is_valid_address(prim) ? "" : "<- INVALID");
 
-                    float pos[3] = {};
-                    read_raw(prim + Offsets::Primitive::Position, pos, sizeof(pos));
-                    ImGui::Text("position read   : %.1f, %.1f, %.1f", pos[0], pos[1], pos[2]);
+            if (is_valid_address(prim)) {
+                float pos[3] = {};
+                read_raw(prim + Offsets::Primitive::Position, pos, sizeof(pos));
+                ImGui::Text("position read   : %.1f, %.1f, %.1f", pos[0], pos[1], pos[2]);
 
-                    float vel[3] = {};
-                    read_raw(prim + Offsets::Primitive::AssemblyLinearVelocity, vel, sizeof(vel));
-                    ImGui::Text("velocity read   : %.1f, %.1f, %.1f", vel[0], vel[1], vel[2]);
+                float vel[3] = {};
+                read_raw(prim + Offsets::Primitive::AssemblyLinearVelocity, vel, sizeof(vel));
+                ImGui::Text("velocity read   : %.1f, %.1f, %.1f", vel[0], vel[1], vel[2]);
 
-                    static char test_result[160] = "not run yet";
+                static char test_result[192] = "not run yet";
 
-                    if (ImGui::Button("run position write test (+10 studs up)", ImVec2(-1, 0))) {
-                        float before[3] = {};
-                        read_raw(prim + Offsets::Primitive::Position, before, sizeof(before));
-
-                        float target[3] = { before[0], before[1] + 10.0f, before[2] };
-                        bool wrote = write_raw(prim + Offsets::Primitive::Position, target, sizeof(target));
-
-                        float after[3] = {};
-                        read_raw(prim + Offsets::Primitive::Position, after, sizeof(after));
-
-                        float delta = after[1] - before[1];
-                        snprintf(test_result, sizeof(test_result),
-                                 "WriteProcessMemory=%s | y %.2f -> %.2f (delta %.2f) | %s",
-                                 wrote ? "ok" : "FAILED",
-                                 before[1], after[1], delta,
-                                 (delta > 5.0f) ? "WRITE LANDED"
-                                                : "write did NOT stick (engine reverted or wrong offset)");
-                        LogLine("%s", test_result);
-                    }
-                    ImGui::TextWrapped("%s", test_result);
+                if (ImGui::Button("test POSITION write (+10 studs up)", ImVec2(-1, 0))) {
+                    float before[3] = {};
+                    read_raw(prim + Offsets::Primitive::Position, before, sizeof(before));
+                    float target[3] = { before[0], before[1] + 10.0f, before[2] };
+                    bool wrote = write_raw(prim + Offsets::Primitive::Position, target, sizeof(target));
+                    float after[3] = {};
+                    read_raw(prim + Offsets::Primitive::Position, after, sizeof(after));
+                    float delta = after[1] - before[1];
+                    snprintf(test_result, sizeof(test_result),
+                             "POS: wpm=%s y %.2f -> %.2f (delta %.2f) %s",
+                             wrote ? "ok" : "FAILED", before[1], after[1], delta,
+                             (delta > 5.0f) ? "LANDED" : "did NOT stick");
+                    LogLine("%s", test_result);
                 }
+
+                if (ImGui::Button("test VELOCITY write (launch up)", ImVec2(-1, 0))) {
+                    float v[3] = { 0.0f, 100.0f, 0.0f };
+                    bool wrote = write_raw(prim + Offsets::Primitive::AssemblyLinearVelocity, v, sizeof(v));
+                    float back[3] = {};
+                    read_raw(prim + Offsets::Primitive::AssemblyLinearVelocity, back, sizeof(back));
+                    snprintf(test_result, sizeof(test_result),
+                             "VEL: wpm=%s wrote y=100 read back y=%.2f %s",
+                             wrote ? "ok" : "FAILED", back[1],
+                             (back[1] > 50.0f) ? "LANDED" : "did NOT stick");
+                    LogLine("%s", test_result);
+                }
+
+                ImGui::TextWrapped("%s", test_result);
             } else {
-                ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1), "no humanoid - spawn in first");
+                ImGui::TextColored(ImVec4(1, 0.7f, 0.2f, 1),
+                                   "root part not resolved - spawn in, or names are failing");
             }
 
         }

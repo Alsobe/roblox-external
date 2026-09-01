@@ -345,7 +345,8 @@ namespace features {
         Vec2 viewport{};
         if (!GetCamera(view, viewport)) return;
 
-        const auto& skeletons = cache::GetSkeletonEntities();
+        auto skeletons_snap = cache::GetSkeletonSnapshot();
+        const auto& skeletons = *skeletons_snap;
         if (skeletons.empty()) return;
 
         ImDrawList* draw = ImGui::GetBackgroundDrawList();
@@ -404,7 +405,8 @@ namespace features {
         Vec2 viewport{};
         if (!GetCamera(view, viewport)) return;
 
-        const auto& skeletons = cache::GetSkeletonEntities();
+        auto skeletons_snap = cache::GetSkeletonSnapshot();
+        const auto& skeletons = *skeletons_snap;
         if (skeletons.empty()) return;
 
         ImDrawList* draw = ImGui::GetBackgroundDrawList();
@@ -462,7 +464,8 @@ namespace features {
         Vec2 viewport{};
         if (!GetCamera(view, viewport)) return;
 
-        const auto& entities = cache::GetEspEntities();
+        auto entities_snap = cache::GetEspSnapshot();
+        const auto& entities = *entities_snap;
         const cache::LocalPlayerData& lp = cache::GetLocalPlayer();
         if (entities.empty()) return;
 
@@ -756,7 +759,8 @@ namespace features {
         Vec2 viewport{};
         if (!GetCamera(view, viewport)) return;
 
-        const auto& entities = cache::GetEspEntities();
+        auto entities_snap = cache::GetEspSnapshot();
+        const auto& entities = *entities_snap;
         if (entities.empty()) return;
 
         ImDrawList* draw = ImGui::GetBackgroundDrawList();
@@ -902,7 +906,8 @@ namespace features {
         Vec2 viewport{};
         if (!GetCamera(view, viewport)) return;
 
-        const auto& entities = cache::GetEspEntities();
+        auto entities_snap = cache::GetEspSnapshot();
+        const auto& entities = *entities_snap;
         if (entities.empty()) return;
 
         static DWORD last_stats_print = 0;
@@ -1063,7 +1068,8 @@ namespace features {
         Vec2 viewport{};
         if (!GetCamera(view, viewport)) return;
 
-        const auto& entities = cache::GetEspEntities();
+        auto entities_snap = cache::GetEspSnapshot();
+        const auto& entities = *entities_snap;
         if (entities.empty()) return;
 
         ImDrawList* draw = ImGui::GetBackgroundDrawList();
@@ -1136,7 +1142,8 @@ namespace features {
         Vec2 viewport{};
         if (!GetCamera(view, viewport)) return;
 
-        const auto& entities = cache::GetEspEntities();
+        auto entities_snap = cache::GetEspSnapshot();
+        const auto& entities = *entities_snap;
         if (entities.empty()) return;
 
         ImDrawList* draw = ImGui::GetBackgroundDrawList();

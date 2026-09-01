@@ -3,13 +3,14 @@
 #include <cstdint>
 #include <string>
 #include <mutex>
+#include <memory>
 
 namespace cache {
     static constexpr size_t k_esp_primitive_capacity = 64;
 
     struct EspEntity {
         uintptr_t primitives[64]{};
-        char part_names[64][64]{};
+        char part_names[64][24]{};   // longest body part name is 16 chars
         uintptr_t part_addresses[64]{};
         size_t primitive_count = 0;
         uintptr_t character_address = 0;
@@ -45,6 +46,16 @@ namespace cache {
         uintptr_t hrp_primitive = 0;
         uintptr_t humanoid_address = 0;
     };
+
+    // Zero-copy snapshots. The cache thread publishes a new immutable vector each
+    // pass; readers hold a shared_ptr so the data stays alive while they use it.
+    // (The old by-value getters deep-copied ~2.7KB per player on every call, from
+    // 9 call sites per frame.)
+    using EspSnapshot  = std::shared_ptr<const std::vector<EspEntity>>;
+    using SkelSnapshot = std::shared_ptr<const std::vector<SkeletonEntity>>;
+
+    EspSnapshot  GetEspSnapshot();
+    SkelSnapshot GetSkeletonSnapshot();
 
     std::mutex& GetMutex();
     std::vector<EspEntity> GetEspEntities();
