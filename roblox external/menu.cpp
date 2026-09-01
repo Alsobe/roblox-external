@@ -75,13 +75,31 @@ static bool keybind_button(const char* label, int& key) {
 // PHETAMINE-style widgets
 // ---------------------------------------------------------------
 namespace ui {
-    static const ImU32 RED       = IM_COL32(200, 20, 20, 255);
-    static const ImU32 RED_DEEP  = IM_COL32(120, 15, 15, 255);
     static const ImU32 BG_ELEM   = IM_COL32(12, 12, 18, 200);
     static const ImU32 OFF_TRACK = IM_COL32(30, 30, 40, 255);
     static const ImU32 TXT_MAIN  = IM_COL32(220, 220, 230, 255);
     static const ImU32 TXT_DIM   = IM_COL32(160, 160, 170, 255);
     static const ImU32 WHITE     = IM_COL32(255, 255, 255, 255);
+
+    // live accent, driven by the ui page (so rainbow actually reaches every widget)
+    inline ImU32 Accent(float alpha = 1.0f) {
+        return IM_COL32((int)(ui_accent_color[0] * 255.0f),
+                        (int)(ui_accent_color[1] * 255.0f),
+                        (int)(ui_accent_color[2] * 255.0f),
+                        (int)(alpha * 255.0f));
+    }
+    inline ImU32 AccentDeep(float alpha = 1.0f) {
+        return IM_COL32((int)(ui_accent_color[0] * 0.6f * 255.0f),
+                        (int)(ui_accent_color[1] * 0.6f * 255.0f),
+                        (int)(ui_accent_color[2] * 0.6f * 255.0f),
+                        (int)(alpha * 255.0f));
+    }
+
+    // uniform metrics so every row lines up
+    static constexpr float ROW_H     = 34.0f;
+    static constexpr float SLIDER_H  = 46.0f;
+    static constexpr float PAD_X     = 12.0f;
+    static constexpr float GAP       = 6.0f;
 
     // red accent bar + uppercase caption
     inline void Section(const char* text) {
@@ -89,7 +107,7 @@ namespace ui {
         ImVec2 p = ImGui::GetCursorScreenPos();
         float h = ImGui::GetTextLineHeight();
         ImDrawList* d = ImGui::GetWindowDrawList();
-        d->AddRectFilled(ImVec2(p.x, p.y + 1), ImVec2(p.x + 3, p.y + h - 1), RED);
+        d->AddRectFilled(ImVec2(p.x, p.y + 1), ImVec2(p.x + 3, p.y + h - 1), Accent());
 
         char up[128];
         size_t i = 0;
@@ -104,7 +122,7 @@ namespace ui {
 
     // pill switch with sliding knob
     inline bool Toggle(const char* label, bool* v) {
-        float h = ImGui::GetFrameHeight();
+        float h = ROW_H;
         float tw = 38.0f, th = 18.0f;
         float full = ImGui::GetContentRegionAvail().x;
 
@@ -118,25 +136,26 @@ namespace ui {
 
         d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BG_ELEM, 3.0f);
         d->AddRect(p, ImVec2(p.x + full, p.y + h),
-                   hov ? IM_COL32(200, 20, 20, 190) : IM_COL32(200, 20, 20, 110), 3.0f, 0, 1.6f);
+                   hov ? Accent(0.75f) : Accent(0.43f), 3.0f, 0, 1.6f);
 
-        d->AddText(ImVec2(p.x + 12, p.y + (h - ImGui::GetTextLineHeight()) * 0.5f), TXT_MAIN, label);
+        d->AddText(ImVec2(p.x + PAD_X, p.y + (h - ImGui::GetTextLineHeight()) * 0.5f), TXT_MAIN, label);
 
         float tx = p.x + full - tw - 10.0f;
         float ty = p.y + (h - th) * 0.5f;
-        d->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + tw, ty + th), *v ? RED : OFF_TRACK, th * 0.5f);
+        d->AddRectFilled(ImVec2(tx, ty), ImVec2(tx + tw, ty + th), *v ? Accent() : OFF_TRACK, th * 0.5f);
 
         float kr = 6.0f;
         float kx = *v ? (tx + tw - kr - 3.0f) : (tx + kr + 3.0f);
         d->AddCircleFilled(ImVec2(kx, ty + th * 0.5f), kr, WHITE);
 
+        ImGui::Dummy(ImVec2(0, GAP - 4));
         return pressed;
     }
 
     // label + right-aligned value + fill track
     inline bool Slider(const char* label, float* v, float mn, float mx, const char* fmt = "%.0f") {
         float full = ImGui::GetContentRegionAvail().x;
-        float h = 46.0f;
+        float h = SLIDER_H;
         ImVec2 p = ImGui::GetCursorScreenPos();
 
         ImGui::PushID(label);
@@ -144,8 +163,8 @@ namespace ui {
         bool active = ImGui::IsItemActive();
         bool hov = ImGui::IsItemHovered();
 
-        float trx = p.x + 12.0f;
-        float trw = full - 24.0f;
+        float trx = p.x + PAD_X;
+        float trw = full - PAD_X * 2.0f;
         float try_ = p.y + h - 14.0f;
 
         if (active) {
@@ -158,21 +177,22 @@ namespace ui {
         ImDrawList* d = ImGui::GetWindowDrawList();
         d->AddRectFilled(p, ImVec2(p.x + full, p.y + h), BG_ELEM, 3.0f);
         d->AddRect(p, ImVec2(p.x + full, p.y + h),
-                   (hov || active) ? IM_COL32(200, 20, 20, 190) : IM_COL32(200, 20, 20, 110), 3.0f, 0, 1.6f);
+                   (hov || active) ? Accent(0.75f) : Accent(0.43f), 3.0f, 0, 1.6f);
 
-        d->AddText(ImVec2(p.x + 12, p.y + 7), TXT_MAIN, label);
+        d->AddText(ImVec2(p.x + PAD_X, p.y + 7), TXT_MAIN, label);
 
         char buf[64];
         snprintf(buf, sizeof(buf), fmt, *v);
         ImVec2 ts = ImGui::CalcTextSize(buf);
-        d->AddText(ImVec2(p.x + full - ts.x - 12, p.y + 7), RED, buf);
+        d->AddText(ImVec2(p.x + full - ts.x - PAD_X, p.y + 7), Accent(), buf);
 
         d->AddRectFilled(ImVec2(trx, try_), ImVec2(trx + trw, try_ + 4), OFF_TRACK, 2.0f);
         float ratio = (mx - mn) != 0.0f ? (*v - mn) / (mx - mn) : 0.0f;
         if (ratio < 0) ratio = 0; if (ratio > 1) ratio = 1;
-        d->AddRectFilled(ImVec2(trx, try_), ImVec2(trx + trw * ratio, try_ + 4), RED, 2.0f);
+        d->AddRectFilled(ImVec2(trx, try_), ImVec2(trx + trw * ratio, try_ + 4), Accent(), 2.0f);
 
         ImGui::PopID();
+        ImGui::Dummy(ImVec2(0, GAP - 4));
         return active;
     }
 
@@ -187,10 +207,10 @@ namespace ui {
         bool hov = ImGui::IsItemHovered();
 
         ImDrawList* d = ImGui::GetWindowDrawList();
-        ImU32 bg = selected ? RED_DEEP : (hov ? IM_COL32(80, 10, 10, 220) : IM_COL32(18, 18, 25, 190));
+        ImU32 bg = selected ? AccentDeep() : (hov ? AccentDeep(0.55f) : IM_COL32(18, 18, 25, 190));
         d->AddRectFilled(p, ImVec2(p.x + btn.x, p.y + btn.y), bg, 3.0f);
         d->AddRect(p, ImVec2(p.x + btn.x, p.y + btn.y),
-                   selected ? IM_COL32(200, 20, 20, 235) : IM_COL32(200, 20, 20, 110), 3.0f, 0, 1.6f);
+                   selected ? Accent(0.92f) : Accent(0.43f), 3.0f, 0, 1.6f);
         d->AddText(ImVec2(p.x + 13.0f, p.y + (btn.y - sz.y) * 0.5f),
                    selected ? WHITE : TXT_DIM, label);
 
@@ -261,7 +281,7 @@ void RenderMenu() {
 
         ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + bar_h));
         d->AddLine(ImVec2(p.x, p.y + bar_h - 4), ImVec2(p.x + full, p.y + bar_h - 4),
-                   IM_COL32(200, 20, 20, 130), 1.5f);
+                   ui::Accent(0.51f), 1.5f);
 
         if (s_minimized) { ImGui::End(); return; }
     }
@@ -279,6 +299,7 @@ void RenderMenu() {
     ImGui::Dummy(ImVec2(0, 4));
 
     ImGui::BeginChild("content", ImVec2(0, 0), false);
+    ImGui::PushItemWidth(-1.0f);
         if (s_page == 0) {
             ui::Toggle("enabled", &aimbot_enabled);
             ImGui::Combo("aim type", &aimbot_aim_type, "camera\0mouse\0");
@@ -603,6 +624,7 @@ void RenderMenu() {
             ImGui::EndChild();
 
         }
+    ImGui::PopItemWidth();
     ImGui::EndChild();
     ImGui::End();
 }

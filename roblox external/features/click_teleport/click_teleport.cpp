@@ -58,8 +58,9 @@ namespace features {
         if (!read_raw(cam.address + Offsets::Camera::Position, campos, sizeof(campos))) return;
         if (!read_raw(cam.address + Offsets::Camera::Rotation, rot, sizeof(rot))) return;
 
-        float fov = read<float>(cam.address + Offsets::Camera::FieldOfView);
-        if (fov < 1.0f || fov > 170.0f) fov = 70.0f;
+        // stored in radians, not degrees
+        float fov_rad = read<float>(cam.address + Offsets::Camera::FieldOfView);
+        if (fov_rad < 0.1f || fov_rad > 3.0f) fov_rad = 1.2217f;   // ~70 deg
 
         // viewport dimensions straight from the renderer
         instance ve = read<instance>(g_base_address + Offsets::VisualEngine::Pointer);
@@ -85,8 +86,7 @@ namespace features {
         float ndc_x = (2.0f * (float)cursor.x / dims[0]) - 1.0f;
         float ndc_y = 1.0f - (2.0f * (float)cursor.y / dims[1]);
 
-        const float kPi = 3.14159265358979323846f;
-        float tan_half = tanf((fov * 0.5f) * kPi / 180.0f);
+        float tan_half = tanf(fov_rad * 0.5f);
         float aspect = dims[0] / dims[1];
 
         float sx = ndc_x * tan_half * aspect;
