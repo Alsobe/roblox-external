@@ -1,6 +1,5 @@
 #include <Windows.h>
 #include <cmath>
-#include <chrono>
 #include "flight.h"
 #include "globals.h"
 #include "memory.h"
@@ -43,45 +42,44 @@ namespace features {
         return cached_camera;
     }
 
-    // flight is position based rather than velocity based. writing AssemblyLinearVelocity
-    // fights the physics solver (gravity keeps re-applying between our writes and the
-    // humanoid state machine clamps it), so instead we move the root part ourselves
-    // every tick and hold it there. that also makes hovering exact.
-    void RunFlight() {
-        static bool was_flying = false;
-        static std::chrono::steady_clock::time_point last_tick{};
-        static float hold[3] = { 0, 0, 0 };
+    static bool s_flying = false;
+    static uintptr_t s_flying_humanoid = 0;
 
-        if (!flight_enabled || flight_keybind == 0) { was_flying = false; return; }
+    static void StopFlying() {
+        // let the humanoid drive itself again
+        if (s_flying && is_valid_address(s_flying_humanoid)) {
+            write<bool>(s_flying_humanoid + Offsets::Humanoid::PlatformStand, false);
+        }
+        s_flying = false;
+        s_flying_humanoid = 0;
+    }
+
+    // Writing Primitive::Position directly made the physics solver resolve the
+    // resulting collision and shove the character through the floor. Instead we
+    // put the humanoid into PlatformStand (which switches off its state machine,
+    // so it stops trying to walk/stand/fall) and then drive AssemblyLinearVelocity.
+    // Rewriting the velocity every tick is what cancels gravity - a velocity of
+    // exactly zero therefore hovers perfectly in place.
+    void RunFlight() {
+        if (!flight_enabled || flight_keybind == 0) { StopFlying(); return; }
 
         bool key_down = (GetAsyncKeyState(flight_keybind) & 0x8000) != 0;
-        if (!key_down) { was_flying = false; return; }
+        if (!key_down) { StopFlying(); return; }
 
         const cache::LocalPlayerData& lp = cache::GetLocalPlayer();
-        if (!lp.valid || !is_valid_address(lp.hrp_primitive)) { was_flying = false; return; }
+        if (!lp.valid || !is_valid_address(lp.hrp_primitive)) { StopFlying(); return; }
 
-        float cur[3] = {};
-        if (!read_raw(lp.hrp_primitive + Offsets::Primitive::Position, cur, sizeof(cur))) return;
-
-        auto now = std::chrono::steady_clock::now();
-
-        // first frame of a new flight: latch onto where we currently are
-        if (!was_flying) {
-            hold[0] = cur[0]; hold[1] = cur[1]; hold[2] = cur[2];
-            last_tick = now;
-            was_flying = true;
+        if (!s_flying) {
+            s_flying = true;
+            s_flying_humanoid = lp.humanoid_address;
+            if (is_valid_address(s_flying_humanoid))
+                write<bool>(s_flying_humanoid + Offsets::Humanoid::PlatformStand, true);
+        } else if (s_flying_humanoid != lp.humanoid_address) {
+            // respawned mid-flight - re-apply to the new humanoid
+            s_flying_humanoid = lp.humanoid_address;
+            if (is_valid_address(s_flying_humanoid))
+                write<bool>(s_flying_humanoid + Offsets::Humanoid::PlatformStand, true);
         }
-
-        float dt = std::chrono::duration<float>(now - last_tick).count();
-        last_tick = now;
-        if (dt <= 0.0f) dt = 0.001f;
-        if (dt > 0.1f)  dt = 0.1f;   // don't lurch after a stall
-
-        // if the game moved us a long way (teleport, respawn, seat) resync
-        float drift = sqrtf((cur[0] - hold[0]) * (cur[0] - hold[0]) +
-                            (cur[1] - hold[1]) * (cur[1] - hold[1]) +
-                            (cur[2] - hold[2]) * (cur[2] - hold[2]));
-        if (drift > 25.0f) { hold[0] = cur[0]; hold[1] = cur[1]; hold[2] = cur[2]; }
 
         instance cam = GetCamera();
         if (!cam.is_valid()) return;
@@ -100,19 +98,13 @@ namespace features {
         if (GetAsyncKeyState(VK_SPACE)  & 0x8000) dir = dir + FVec3{ 0, 1, 0 };
         if (GetAsyncKeyState(VK_LSHIFT) & 0x8000) dir = dir - FVec3{ 0, 1, 0 };
 
-        if (dir.magnitude() > 0.01f) {
-            dir = dir.normalize();
-            hold[0] += dir.x * flight_value * dt;
-            hold[1] += dir.y * flight_value * dt;
-            hold[2] += dir.z * flight_value * dt;
-        }
+        if (dir.magnitude() > 0.01f) dir = dir.normalize();
 
-        // pin the root part to our tracked position, and keep velocity dead so the
-        // solver doesn't accumulate gravity while we're holding it
-        write_raw(lp.hrp_primitive + Offsets::Primitive::Position, hold, sizeof(hold));
-
+        FVec3 vel = dir * flight_value;
+        float v[3] = { vel.x, vel.y, vel.z };
         float zero[3] = { 0, 0, 0 };
-        write_raw(lp.hrp_primitive + Offsets::Primitive::AssemblyLinearVelocity, zero, sizeof(zero));
+
+        write_raw(lp.hrp_primitive + Offsets::Primitive::AssemblyLinearVelocity, v, sizeof(v));
         write_raw(lp.hrp_primitive + Offsets::Primitive::AssemblyAngularVelocity, zero, sizeof(zero));
     }
 }

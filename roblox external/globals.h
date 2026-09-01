@@ -88,6 +88,11 @@ inline bool flight_enabled = false;
 inline int flight_keybind = 0;
 inline float flight_value = 50.0f;
 
+inline bool infinite_jump_enabled = false;
+
+inline bool inventory_checker_enabled = false;
+inline int inventory_checker_keybind = 0;
+
 inline bool click_teleport_enabled = false;
 inline int click_teleport_keybind = 0;
 inline float click_teleport_distance = 30.0f;
@@ -96,7 +101,6 @@ inline bool noclip_enabled = false;
 inline int noclip_keybind = 0;
 
 
-inline bool korblox_enabled = false;
 
 inline bool skybox_changer_enabled = false;
 inline int skybox_type = 0;

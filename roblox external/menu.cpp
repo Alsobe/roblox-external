@@ -182,7 +182,12 @@ void RenderMenu() {
             ImGui::Checkbox("click teleport", &click_teleport_enabled);
             if (click_teleport_enabled) ImGui::SliderFloat("tp distance", &click_teleport_distance, 5.0f, 200.0f, "%.0f studs");
             ImGui::Separator();
-            ImGui::Checkbox("korblox", &korblox_enabled);
+            ImGui::Checkbox("infinite jump", &infinite_jump_enabled);
+            if (infinite_jump_enabled) ImGui::TextDisabled("press space repeatedly to keep jumping");
+            ImGui::Separator();
+            ImGui::Checkbox("inventory checker", &inventory_checker_enabled);
+            if (inventory_checker_enabled) ImGui::TextDisabled("hold the key with your cursor over a player");
+            ImGui::Separator();
 
             ImGui::EndTabItem();
         }
@@ -220,6 +225,7 @@ void RenderMenu() {
             keybind_button("walkspeed", walkspeed_keybind);
             keybind_button("flight", flight_keybind);
             keybind_button("click teleport", click_teleport_keybind);
+            keybind_button("inventory checker", inventory_checker_keybind);
             ImGui::Separator();
 
             ImGui::TextDisabled("all binds are hold-to-use except click teleport,");

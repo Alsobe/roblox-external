@@ -150,13 +150,15 @@ namespace config {
         WriteEntry(f, "click_teleport_enabled", click_teleport_enabled);
         WriteEntry(f, "click_teleport_keybind", click_teleport_keybind);
         WriteEntry(f, "click_teleport_distance", click_teleport_distance);
+        WriteEntry(f, "infinite_jump_enabled", infinite_jump_enabled);
+        WriteEntry(f, "inventory_checker_enabled", inventory_checker_enabled);
+        WriteEntry(f, "inventory_checker_keybind", inventory_checker_keybind);
         WriteEntry(f, "menu_toggle_keybind", menu_toggle_keybind);
         WriteEntry(f, "noclip_enabled", noclip_enabled);
         WriteEntry(f, "noclip_keybind", noclip_keybind);
 
 
         // misc features
-        WriteEntry(f, "korblox_enabled", korblox_enabled);
         WriteEntry(f, "skybox_changer_enabled", skybox_changer_enabled);
         WriteEntry(f, "skybox_type", skybox_type);
 
@@ -245,13 +247,15 @@ namespace config {
             if (ReadLine(line, "click_teleport_enabled", click_teleport_enabled)) continue;
             if (ReadLine(line, "click_teleport_keybind", click_teleport_keybind)) continue;
             if (ReadLine(line, "click_teleport_distance", click_teleport_distance)) continue;
+            if (ReadLine(line, "infinite_jump_enabled", infinite_jump_enabled)) continue;
+            if (ReadLine(line, "inventory_checker_enabled", inventory_checker_enabled)) continue;
+            if (ReadLine(line, "inventory_checker_keybind", inventory_checker_keybind)) continue;
             if (ReadLine(line, "menu_toggle_keybind", menu_toggle_keybind)) continue;
             if (ReadLine(line, "noclip_enabled", noclip_enabled)) continue;
             if (ReadLine(line, "noclip_keybind", noclip_keybind)) continue;
 
 
             // misc features
-            if (ReadLine(line, "korblox_enabled", korblox_enabled)) continue;
             if (ReadLine(line, "skybox_changer_enabled", skybox_changer_enabled)) continue;
             if (ReadLine(line, "skybox_type", skybox_type)) continue;
 

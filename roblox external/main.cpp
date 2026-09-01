@@ -14,7 +14,8 @@
 #include "features/noclip/noclip.h"
 #include "features/walkspeed/walkspeed.h"
 #include "features/click_teleport/click_teleport.h"
-#include "features/rage/rage.h"
+#include "features/infinite_jump/infinite_jump.h"
+#include "features/inventory_checker/inventory_checker.h"
 #include "features/skybox_changer/skybox_changer.h"
 #include "features/hitbox_expander/hitbox_expander.h"
 #include "features/memorymeshchams/memorymeshchams.h"
@@ -57,6 +58,7 @@ namespace discord_overlay {
         }
         if (memory_mesh_chams_enabled) features::RenderMemoryMeshChams();
         if (aimbot_enabled) features::RenderFOV();
+        if (inventory_checker_enabled) features::RenderInventoryChecker();
 
         if (g_state.menu_open) {
             if (!g_state.centered_once) {
@@ -78,6 +80,7 @@ static void FeatureLoop() {
             if (noclip_enabled) features::RunNoclip();
             if (walkspeed_enabled) features::RunWalkspeed();
             if (click_teleport_enabled) features::RunClickTeleport();
+            if (infinite_jump_enabled) features::RunInfiniteJump();
             if (skybox_changer_enabled) features::RunSkyboxChanger();
             if (hitbox_expander_enabled) features::RunHitboxExpander();
         }
@@ -148,7 +151,6 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
 
     cache::StartThread();
     features::StartMemoryMeshChams();
-    features::rage::Initialize();
     CreateThread(nullptr, 0, [](LPVOID) -> DWORD { FeatureLoop(); return 0; }, nullptr, 0, nullptr);
     CreateThread(nullptr, 0, AttachLoop, nullptr, 0, nullptr);
 
@@ -157,7 +159,6 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
     cache::StopThread();
     features::ShutdownMeshChams();
     features::ShutdownMemoryMeshChams();
-    features::rage::Shutdown();
     discord_overlay::shutdown();
     return 0;
 }

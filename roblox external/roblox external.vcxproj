@@ -157,7 +157,8 @@
     <ClCompile Include="features\noclip\noclip.cpp" />
     <ClCompile Include="features\walkspeed\walkspeed.cpp" />
     <ClCompile Include="features\click_teleport\click_teleport.cpp" />
-    <ClCompile Include="features\rage\rage.cpp" />
+    <ClCompile Include="features\infinite_jump\infinite_jump.cpp" />
+    <ClCompile Include="features\inventory_checker\inventory_checker.cpp" />
     <ClCompile Include="features\skybox_changer\skybox_changer.cpp" />
     <ClCompile Include="features\hitbox_expander\hitbox_expander.cpp" />
     <ClCompile Include="features\memorymeshchams\memorymeshchams.cpp" />
@@ -190,7 +191,8 @@
     <ClInclude Include="features\noclip\noclip.h" />
     <ClInclude Include="features\walkspeed\walkspeed.h" />
     <ClInclude Include="features\click_teleport\click_teleport.h" />
-    <ClInclude Include="features\rage\rage.h" />
+    <ClInclude Include="features\infinite_jump\infinite_jump.h" />
+    <ClInclude Include="features\inventory_checker\inventory_checker.h" />
     <ClInclude Include="features\skybox_changer\skybox_changer.h" />
     <ClInclude Include="features\hitbox_expander\hitbox_expander.h" />
     <ClInclude Include="features\memorymeshchams\memorymeshchams.h" />

@@ -1,4 +1,5 @@
 #include "process.h"
+#include "memory.h"
 
 namespace process {
     bool FindRoblox(uint32_t& pid, uintptr_t& base) {
@@ -46,5 +47,28 @@ namespace process {
 
         CloseHandle(snap);
         return false;
+    }
+}
+
+namespace process {
+    struct FindData { DWORD pid; HWND result; };
+
+    static BOOL CALLBACK EnumProc(HWND hwnd, LPARAM lparam) {
+        FindData* d = reinterpret_cast<FindData*>(lparam);
+        DWORD wpid = 0;
+        GetWindowThreadProcessId(hwnd, &wpid);
+        if (wpid == d->pid && GetWindow(hwnd, GW_OWNER) == nullptr && IsWindowVisible(hwnd)) {
+            d->result = hwnd;
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    HWND GetRobloxWindow() {
+        DWORD pid = (DWORD)mem::process_id.load();
+        if (!pid) return nullptr;
+        FindData d{ pid, nullptr };
+        EnumWindows(EnumProc, reinterpret_cast<LPARAM>(&d));
+        return d.result;
     }
 }

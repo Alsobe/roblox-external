@@ -6,6 +6,7 @@
 #include "cache.h"
 #include "offsets.h"
 #include "game.h"
+#include "process.h"
 
 namespace features {
 
@@ -69,6 +70,11 @@ namespace features {
 
         POINT cursor{};
         if (!GetCursorPos(&cursor)) return;
+
+        // the viewport is roblox's CLIENT area - if the game is windowed, the desktop
+        // cursor position is offset from it, which threw the ray off. convert first.
+        if (HWND rbx = process::GetRobloxWindow())
+            ScreenToClient(rbx, &cursor);
 
         // camera basis vectors out of the roblox rotation matrix
         float rx = rot[0], ry = rot[3], rz = rot[6];   // right
