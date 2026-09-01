@@ -31,7 +31,9 @@ namespace discord_overlay
 
     inline State g_state;
 
-    constexpr int TOGGLE_KEY = VK_INSERT;
+    // menu toggle key. change this to whatever you want, e.g.
+    // VK_HOME, VK_END, VK_INSERT, VK_DELETE, VK_PRIOR (page up), VK_F1 ... VK_F12
+    constexpr int TOGGLE_KEY = VK_HOME;
 
     inline int VkToImGuiKey(int vk) {
         if (vk >= '0' && vk <= '9') return vk;

@@ -118,7 +118,7 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
     features::rage::Initialize();
     CreateThread(nullptr, 0, [](LPVOID) -> DWORD { FeatureLoop(); return 0; }, nullptr, 0, nullptr);
 
-    printf("launching overlay - insert to toggle menu\n");
+    printf("launching overlay - home to toggle menu\n");
     discord_overlay::run();
 
     cache::StopThread();

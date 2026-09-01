@@ -44,7 +44,7 @@ features run in a separate thread, esp/rendering happens on the overlay thread.
 
 ## keys
 
-- `INSERT` toggles the menu
+- `HOME` toggles the menu (change `TOGGLE_KEY` in `overlay.hpp` to rebind)
 - some feature have their own configurable keybind in the menu
 
 ## notes
