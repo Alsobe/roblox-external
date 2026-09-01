@@ -87,16 +87,6 @@ static void FeatureLoop() {
     }
 }
 
-static void WaitForRoblox() {
-    printf("waiting for roblox...\n");
-    uint32_t pid = 0;
-    uintptr_t base = 0;
-    while (!process::FindRoblox(pid, base)) Sleep(2000);
-    printf("found roblox - pid: %u, base: 0x%llx\n", pid, (unsigned long long)base);
-    mem::process_id.store(pid);
-    if (!mem::grabroblox_h()) { printf("failed to open handle\n"); return; }
-    g_base_address = base;
-}
 
 // returns false once the process we're attached to has exited
 static bool RobloxStillAlive() {
@@ -107,32 +97,46 @@ static bool RobloxStillAlive() {
     return code == STILL_ACTIVE;
 }
 
-// watches for roblox dying and transparently re-attaches to the new process,
-// so you can close/reopen roblox without restarting the overlay
-static DWORD WINAPI ReconnectLoop(LPVOID) {
+static void DetachRoblox() {
+    clear_instance_caches();
+    g_base_address = 0;
+    mem::process_id.store(0);
+    HANDLE old = mem::roblox_h.exchange(nullptr);
+    if (old && old != INVALID_HANDLE_VALUE) CloseHandle(old);
+    g_memory.Handle = nullptr;
+}
+
+// handles the initial attach AND re-attaching after roblox is closed/reopened,
+// so the overlay can be launched before roblox and just keeps working
+static DWORD WINAPI AttachLoop(LPVOID) {
+    bool warned_handle = false;
+
     while (true) {
         if (g_base_address && !RobloxStillAlive()) {
-            printf("roblox closed - waiting for it to come back...\n");
+            LogLine("roblox closed - waiting for it to come back");
+            DetachRoblox();
+        }
 
-            g_base_address = 0;
-            mem::process_id.store(0);
-            HANDLE old = mem::roblox_h.exchange(nullptr);
-            if (old && old != INVALID_HANDLE_VALUE) CloseHandle(old);
-            g_memory.Handle = nullptr;
-
+        if (!g_base_address) {
             uint32_t pid = 0;
             uintptr_t base = 0;
-            while (!process::FindRoblox(pid, base)) Sleep(2000);
-
-            mem::process_id.store(pid);
-            if (mem::grabroblox_h()) {
-                g_base_address = base;
-                printf("reattached - pid: %u, base: 0x%llx\n", pid, (unsigned long long)base);
-            } else {
-                printf("found roblox but failed to open a handle (run as admin)\n");
-                Sleep(2000);
+            if (process::FindRoblox(pid, base)) {
+                mem::process_id.store(pid);
+                if (mem::grabroblox_h()) {
+                    g_base_address = base;
+                    warned_handle = false;
+                    LogLine("attached to roblox - pid %u, base 0x%llx",
+                            pid, (unsigned long long)base);
+                } else {
+                    if (!warned_handle) {
+                        LogLine("found roblox but couldn't open a handle - run as administrator");
+                        warned_handle = true;
+                    }
+                    mem::process_id.store(0);
+                }
             }
         }
+
         Sleep(1000);
     }
     return 0;
@@ -140,23 +144,16 @@ static DWORD WINAPI ReconnectLoop(LPVOID) {
 
 _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC, int nS) {
     (void)hI; (void)hP; (void)lpC; (void)nS;
-    AllocConsole();
-    FILE* fp;
-    freopen_s(&fp, "CONOUT$", "w", stdout);
-    freopen_s(&fp, "CONIN$", "r", stdin);
 
-    printf("=== roblox external ===\n");
-    WaitForRoblox();
-
-    if (!g_base_address) { printf("couldnt find roblox, exiting\n"); Sleep(3000); return 1; }
+    LogLine("roblox external started");
+    LogLine("waiting for roblox...");
 
     cache::StartThread();
     features::StartMemoryMeshChams();
     features::rage::Initialize();
     CreateThread(nullptr, 0, [](LPVOID) -> DWORD { FeatureLoop(); return 0; }, nullptr, 0, nullptr);
-    CreateThread(nullptr, 0, ReconnectLoop, nullptr, 0, nullptr);
+    CreateThread(nullptr, 0, AttachLoop, nullptr, 0, nullptr);
 
-    printf("launching overlay - home to toggle menu\n");
     discord_overlay::run();
 
     cache::StopThread();
@@ -164,7 +161,5 @@ _Use_decl_annotations_ int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpC,
     features::ShutdownMemoryMeshChams();
     features::rage::Shutdown();
     discord_overlay::shutdown();
-    if (fp) fclose(fp);
-    FreeConsole();
     return 0;
 }

@@ -118,26 +118,29 @@ namespace cache {
             e.user_id = read<uint32_t>(p.address + Offsets::Player::UserId);
             e.team_address = get_player_team(p);
 
-            for (auto& c : ch.get_children()) {
+            // fetch the child list ONCE and reuse it for humanoid, tool and parts
+            // (this used to walk the same list three times per player)
+            std::vector<instance> ch_children = ch.get_children();
+
+            bool found_humanoid = false;
+            bool found_tool = false;
+            for (auto& c : ch_children) {
                 if (!c.is_valid()) continue;
-                if (c.get_class_name() == "Humanoid") {
+                if (found_humanoid && found_tool) break;
+                auto cn = c.get_class_name();
+                if (!found_humanoid && cn == "Humanoid") {
                     e.health = read<float>(c.address + Offsets::Humanoid::Health);
                     e.max_health = read<float>(c.address + Offsets::Humanoid::MaxHealth);
-                    break;
-                }
-            }
-            for (auto& c : ch.get_children()) {
-                if (!c.is_valid()) continue;
-                auto cn = c.get_class_name();
-                if (cn == "Tool" || cn == "BackpackItem") {
+                    found_humanoid = true;
+                } else if (!found_tool && (cn == "Tool" || cn == "BackpackItem")) {
                     scpy(e.tool_name, c.get_name().c_str(), sizeof(e.tool_name));
-                    break;
+                    found_tool = true;
                 }
             }
             e.is_r15 = is_r15(ch);
             e.character_address = ch.address;
 
-            for (auto& pt : ch.get_children()) {
+            for (auto& pt : ch_children) {
                 if (!pt.is_valid() || e.primitive_count >= 64) continue;
                 auto pn = pt.get_name();
                 if (!is_body_part(pn.c_str())) continue;
@@ -219,7 +222,9 @@ namespace cache {
         instance ch = local.model_instance();
         if (!ch.is_valid()) return lp;
         lp.valid = true;
-        for (auto& pt : ch.get_children()) {
+        // single pass over the character's children for both HRP and Humanoid
+        std::vector<instance> parts = ch.get_children();
+        for (auto& pt : parts) {
             if (!pt.is_valid()) continue;
             if (pt.get_name() == "HumanoidRootPart") {
                 lp.hrp_primitive = get_prim(pt);
@@ -232,7 +237,7 @@ namespace cache {
                 lp.x = pos.x; lp.y = pos.y; lp.z = pos.z;
             }
         }
-        for (auto& c : ch.get_children()) {
+        for (auto& c : parts) {
             if (!c.is_valid()) continue;
             if (c.get_class_name() == "Humanoid") { lp.humanoid_address = c.address; break; }
         }

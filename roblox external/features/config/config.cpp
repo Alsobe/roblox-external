@@ -151,6 +151,7 @@ namespace config {
         WriteEntry(f, "click_teleport_enabled", click_teleport_enabled);
         WriteEntry(f, "click_teleport_keybind", click_teleport_keybind);
         WriteEntry(f, "click_teleport_distance", click_teleport_distance);
+        WriteEntry(f, "menu_toggle_keybind", menu_toggle_keybind);
         WriteEntry(f, "noclip_enabled", noclip_enabled);
         WriteEntry(f, "noclip_keybind", noclip_keybind);
 
@@ -246,6 +247,7 @@ namespace config {
             if (ReadLine(line, "click_teleport_enabled", click_teleport_enabled)) continue;
             if (ReadLine(line, "click_teleport_keybind", click_teleport_keybind)) continue;
             if (ReadLine(line, "click_teleport_distance", click_teleport_distance)) continue;
+            if (ReadLine(line, "menu_toggle_keybind", menu_toggle_keybind)) continue;
             if (ReadLine(line, "noclip_enabled", noclip_enabled)) continue;
             if (ReadLine(line, "noclip_keybind", noclip_keybind)) continue;
 

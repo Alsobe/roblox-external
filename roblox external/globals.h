@@ -1,5 +1,29 @@
 #pragma once
 #include <cstdint>
+#include <cstdarg>
+#include <cstdio>
+#include <deque>
+#include <mutex>
+#include <string>
+
+// ---- in-gui log (replaces the old console window) ----
+inline std::mutex g_log_mutex;
+inline std::deque<std::string> g_log_lines;
+
+inline void LogLine(const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    std::lock_guard<std::mutex> lock(g_log_mutex);
+    g_log_lines.emplace_back(buf);
+    while (g_log_lines.size() > 200) g_log_lines.pop_front();
+}
+
+// menu toggle key - rebindable from the keybinds tab (VK_HOME by default)
+inline int menu_toggle_keybind = 0x24;
 
 inline bool aimbot_enabled = false;
 inline int aimbot_aim_type = 1;

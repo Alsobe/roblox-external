@@ -1,5 +1,10 @@
 #include "memory.h"
 #include "offsets.h"
+#include <unordered_map>
+#include <mutex>
+
+static std::mutex g_classname_mutex;
+static std::unordered_map<uintptr_t, std::string> g_classname_cache;
 
 MemoryClass g_memory;
 
@@ -14,12 +19,18 @@ bool is_valid_address(uintptr_t address) {
 
 static std::string read_string_raw(uint64_t address) {
     std::string s;
-    s.reserve(204);
-    char buf[200];
-    if (!g_memory.ReadRaw(address, buf, sizeof(buf))) return s;
-    for (int i = 0; i < 200; ++i) {
-        if (buf[i] == 0) break;
-        s.push_back(buf[i]);
+    // read in shrinking chunks: ReadProcessMemory fails for the WHOLE range if any
+    // part of it is unmapped, and a short name near a page boundary would come back
+    // empty if we always demanded 200 bytes.
+    static constexpr int sizes[] = { 128, 64, 32, 16 };
+    char buf[128];
+    for (int want : sizes) {
+        if (!g_memory.ReadRaw(address, buf, (size_t)want)) continue;
+        for (int i = 0; i < want; ++i) {
+            if (buf[i] == 0) return s;
+            s.push_back(buf[i]);
+        }
+        return s;
     }
     return s;
 }
@@ -42,7 +53,29 @@ std::string instance::get_name() const {
 }
 
 std::string instance::get_class_name() const {
-    return fetchstring(read<uintptr_t>(read<uintptr_t>(address + Offsets::Instance::ClassDescriptor) + Offsets::Instance::ClassName));
+    // class descriptors are shared per class and never move, so cache the lookup.
+    // this removes the large majority of string reads during a cache pass.
+    uintptr_t descriptor = read<uintptr_t>(address + Offsets::Instance::ClassDescriptor);
+    if (!is_valid_address(descriptor)) return {};
+
+    {
+        std::lock_guard<std::mutex> lock(g_classname_mutex);
+        auto it = g_classname_cache.find(descriptor);
+        if (it != g_classname_cache.end()) return it->second;
+    }
+
+    std::string name = fetchstring(read<uintptr_t>(descriptor + Offsets::Instance::ClassName));
+    if (!name.empty()) {
+        std::lock_guard<std::mutex> lock(g_classname_mutex);
+        if (g_classname_cache.size() > 4096) g_classname_cache.clear();
+        g_classname_cache[descriptor] = name;
+    }
+    return name;
+}
+
+void clear_instance_caches() {
+    std::lock_guard<std::mutex> lock(g_classname_mutex);
+    g_classname_cache.clear();
 }
 
 instance instance::read_child(const std::string& child_name) const {
@@ -76,10 +109,26 @@ std::vector<instance> instance::get_children() const {
     uint64_t max_end = data_ptr + 4096 * 16u;
     if (end_ptr > max_end) end_ptr = max_end;
 
-    for (uint64_t at = data_ptr; at < end_ptr; at += 16u) {
-        instance child = read<instance>(at);
-        if (!child.is_valid()) continue;
-        children.push_back(child);
+    // batch the whole child array in ONE read instead of one syscall per child.
+    // each entry is 16 bytes: [instance ptr][refcount/pad]
+    size_t count = (size_t)((end_ptr - data_ptr) / 16u);
+    if (count == 0) return children;
+
+    static thread_local std::vector<uint64_t> raw;
+    raw.resize(count * 2);
+    if (!g_memory.ReadRaw(data_ptr, raw.data(), count * 16u)) {
+        // fall back to per-child reads if the block read fails
+        for (uint64_t at = data_ptr; at < end_ptr; at += 16u) {
+            instance child = read<instance>(at);
+            if (child.is_valid()) children.push_back(child);
+        }
+        return children;
+    }
+
+    children.reserve(count);
+    for (size_t i = 0; i < count; ++i) {
+        uint64_t ptr = raw[i * 2];
+        if (is_valid_address((uintptr_t)ptr)) children.push_back(instance{ (uintptr_t)ptr });
     }
     return children;
 }

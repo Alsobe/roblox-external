@@ -9,6 +9,7 @@
 #include <cstdio>
 
 #include "memory.h"
+#include "globals.h"
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_win32.h"
 #include "imgui/backends/imgui_impl_dx11.h"
@@ -40,9 +41,8 @@ namespace discord_overlay
     inline const char* g_class_name  = "RBXOverlayWnd";
     inline const char* g_window_name = "RBXOverlay";
 
-    // menu toggle key. change this to whatever you want, e.g.
-    // VK_HOME, VK_END, VK_INSERT, VK_DELETE, VK_PRIOR (page up), VK_F1 ... VK_F12
-    constexpr int TOGGLE_KEY = VK_HOME;
+    // menu toggle key lives in globals (menu_toggle_keybind) so the keybinds tab
+    // can rebind it at runtime. defaults to VK_HOME.
 
     // finds roblox's main window so we can hand input back to it
     struct FindWndData { DWORD pid; HWND result; };
@@ -171,7 +171,7 @@ namespace discord_overlay
 
         while (true)
         {
-            if (GetAsyncKeyState(TOGGLE_KEY) & 1)
+            if (menu_toggle_keybind != 0 && (GetAsyncKeyState(menu_toggle_keybind) & 1))
             {
                 g_state.menu_open = !g_state.menu_open;
 
@@ -218,7 +218,7 @@ namespace discord_overlay
                 io.AddKeyEvent(ImGuiMod_Shift, shift);
 
                 for (int vk = 1; vk < 256; ++vk) {
-                    if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == TOGGLE_KEY) continue;
+                    if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == menu_toggle_keybind) continue;
                     bool down = (GetAsyncKeyState(vk) & 0x8000) != 0;
                     bool was_down = s_prev_keys[vk];
                     if (down != was_down) {
@@ -507,11 +507,11 @@ namespace discord_overlay
 
     inline void run()
     {
-        if (!create_overlay()) { printf("failed to create overlay window\n"); return; }
-        if (!init_device())    { printf("failed to create d3d11 device\n"); return; }
-        if (!init_imgui())     { printf("failed to init imgui\n"); return; }
+        if (!create_overlay()) { LogLine("failed to create overlay window"); return; }
+        if (!init_device())    { LogLine("failed to create d3d11 device"); return; }
+        if (!init_imgui())     { LogLine("failed to init imgui"); return; }
 
-        printf("overlay window created - press HOME to toggle the menu\n");
+        LogLine("overlay ready");
 
         CreateThread(nullptr, 0, input_thread, nullptr, 0, nullptr);
 

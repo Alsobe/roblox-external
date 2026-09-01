@@ -2,6 +2,8 @@
 #include <cstring>
 #include <cstdio>
 #include <vector>
+#include <mutex>
+#include <string>
 #include "imgui/imgui.h"
 #include "globals.h"
 #include "memory.h"
@@ -193,6 +195,51 @@ void RenderMenu() {
                     ImGui::TextWrapped("%s", skybox_debug_msg);
                 }
             }
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("keybinds")) {
+            ImGui::TextDisabled("click a bind then press any key or mouse button");
+            ImGui::Separator();
+
+            ImGui::Text("menu");
+            keybind_button("toggle menu", menu_toggle_keybind);
+            if (menu_toggle_keybind == 0)
+                ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "unbound - you won't be able to reopen the menu!");
+            ImGui::Separator();
+
+            ImGui::Text("combat");
+            keybind_button("aimbot", aimbot_keybind);
+            ImGui::Separator();
+
+            ImGui::Text("movement");
+            keybind_button("noclip", noclip_keybind);
+            keybind_button("walkspeed", walkspeed_keybind);
+            keybind_button("flight", flight_keybind);
+            keybind_button("click teleport", click_teleport_keybind);
+            ImGui::Separator();
+
+            ImGui::TextDisabled("all binds are hold-to-use except click teleport,");
+            ImGui::TextDisabled("which fires once per press.");
+
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("log")) {
+            if (ImGui::Button("clear", ImVec2(80, 0))) {
+                std::lock_guard<std::mutex> lock(g_log_mutex);
+                g_log_lines.clear();
+            }
+            ImGui::Separator();
+            ImGui::BeginChild("logscroll", ImVec2(0, 240), true);
+            {
+                std::lock_guard<std::mutex> lock(g_log_mutex);
+                for (const std::string& l : g_log_lines)
+                    ImGui::TextUnformatted(l.c_str());
+            }
+            if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0f)
+                ImGui::SetScrollHereY(1.0f);
+            ImGui::EndChild();
             ImGui::EndTabItem();
         }
 

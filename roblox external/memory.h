@@ -49,6 +49,9 @@ template <typename T> bool write(uint64_t address, T value) {
     return true;
 }
 
+// drops cached class-name lookups (call when re-attaching to a new process)
+void clear_instance_caches();
+
 bool read_raw(uint64_t address, void* buffer, size_t size);
 bool write_raw(uint64_t address, const void* data, size_t size);
 
