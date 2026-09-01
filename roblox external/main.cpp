@@ -14,6 +14,7 @@
 #include "features/flight/flight.h"
 #include "features/noclip/noclip.h"
 #include "features/walkspeed/walkspeed.h"
+#include "features/click_teleport/click_teleport.h"
 #include "features/rage/rage.h"
 #include "features/skybox_changer/skybox_changer.h"
 #include "features/hitbox_expander/hitbox_expander.h"
@@ -78,6 +79,7 @@ static void FeatureLoop() {
             if (flight_enabled) features::RunFlight();
             if (noclip_enabled) features::RunNoclip();
             if (walkspeed_enabled) features::RunWalkspeed();
+            if (click_teleport_enabled) features::RunClickTeleport();
             if (skybox_changer_enabled) features::RunSkyboxChanger();
             if (hitbox_expander_enabled) features::RunHitboxExpander();
         }

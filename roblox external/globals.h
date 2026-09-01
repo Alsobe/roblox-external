@@ -64,6 +64,10 @@ inline bool flight_enabled = false;
 inline int flight_keybind = 0;
 inline float flight_value = 50.0f;
 
+inline bool click_teleport_enabled = false;
+inline int click_teleport_keybind = 0;
+inline float click_teleport_distance = 30.0f;
+
 inline bool noclip_enabled = false;
 inline int noclip_keybind = 0;
 

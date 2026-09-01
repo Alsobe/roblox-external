@@ -247,16 +247,32 @@ namespace features {
             float hy = size.y * 0.5f;
             float hz = size.z * 0.5f;
 
-            Vec3 corners[8] = {
-                { pos.x - hx, pos.y - hy, pos.z - hz },
-                { pos.x - hx, pos.y - hy, pos.z + hz },
-                { pos.x - hx, pos.y + hy, pos.z - hz },
-                { pos.x - hx, pos.y + hy, pos.z + hz },
-                { pos.x + hx, pos.y - hy, pos.z - hz },
-                { pos.x + hx, pos.y - hy, pos.z + hz },
-                { pos.x + hx, pos.y + hy, pos.z - hz },
-                { pos.x + hx, pos.y + hy, pos.z + hz },
+            // apply the part's 3x3 rotation matrix, otherwise rotated/tilted parts
+            // produce a box that is far too big and drifts as the player turns
+            float rot[9] = {};
+            bool have_rot = ReadRaw(primitive + Offsets::Primitive::Rotation, rot, sizeof(rot));
+
+            static const float local[8][3] = {
+                {-1,-1,-1},{-1,-1, 1},{-1, 1,-1},{-1, 1, 1},
+                { 1,-1,-1},{ 1,-1, 1},{ 1, 1,-1},{ 1, 1, 1}
             };
+
+            Vec3 corners[8];
+            for (int c = 0; c < 8; ++c) {
+                float lx = local[c][0] * hx;
+                float ly = local[c][1] * hy;
+                float lz = local[c][2] * hz;
+
+                if (have_rot) {
+                    corners[c] = {
+                        pos.x + rot[0] * lx + rot[1] * ly + rot[2] * lz,
+                        pos.y + rot[3] * lx + rot[4] * ly + rot[5] * lz,
+                        pos.z + rot[6] * lx + rot[7] * ly + rot[8] * lz
+                    };
+                } else {
+                    corners[c] = { pos.x + lx, pos.y + ly, pos.z + lz };
+                }
+            }
 
             for (int c = 0; c < 8; ++c) {
                 Vec2 pt{};

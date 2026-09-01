@@ -95,6 +95,12 @@ namespace features {
         if (GetAsyncKeyState('D') & 0x8000) {
             direction = direction + right;
         }
+        if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
+            direction = direction + FlightVec3{ 0.0f, 1.0f, 0.0f };
+        }
+        if (GetAsyncKeyState(VK_LSHIFT) & 0x8000) {
+            direction = direction - FlightVec3{ 0.0f, 1.0f, 0.0f };
+        }
 
         if (direction.magnitude() > 0.01f) {
             direction = direction.normalize();
@@ -102,9 +108,16 @@ namespace features {
 
         FlightVec3 velocity = direction * flight_value;
 
+        // writing the velocity every tick (including a flat 0,0,0 when no key is held)
+        // is what cancels gravity and lets you hover in place
         write<float>(lp.hrp_primitive + Offsets::Primitive::AssemblyLinearVelocity, velocity.x);
         write<float>(lp.hrp_primitive + Offsets::Primitive::AssemblyLinearVelocity + 4, velocity.y);
         write<float>(lp.hrp_primitive + Offsets::Primitive::AssemblyLinearVelocity + 8, velocity.z);
+
+        // kill angular velocity too so the character doesn't tumble while flying
+        write<float>(lp.hrp_primitive + Offsets::Primitive::AssemblyAngularVelocity, 0.0f);
+        write<float>(lp.hrp_primitive + Offsets::Primitive::AssemblyAngularVelocity + 4, 0.0f);
+        write<float>(lp.hrp_primitive + Offsets::Primitive::AssemblyAngularVelocity + 8, 0.0f);
     }
 }
 

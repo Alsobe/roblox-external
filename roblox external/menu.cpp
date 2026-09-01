@@ -167,8 +167,15 @@ void RenderMenu() {
             keybind_button("speed key", walkspeed_keybind);
             ImGui::Separator();
             ImGui::Checkbox("flight", &flight_enabled);
-            if (flight_enabled) ImGui::SliderFloat("fly speed", &flight_value, 0.0f, 200.0f);
+            if (flight_enabled) {
+                ImGui::SliderFloat("fly speed", &flight_value, 0.0f, 200.0f);
+                ImGui::TextDisabled("hold key + wasd, space = up, lshift = down");
+            }
             keybind_button("flight key", flight_keybind);
+            ImGui::Separator();
+            ImGui::Checkbox("click teleport", &click_teleport_enabled);
+            if (click_teleport_enabled) ImGui::SliderFloat("tp distance", &click_teleport_distance, 5.0f, 200.0f, "%.0f studs");
+            keybind_button("teleport key", click_teleport_keybind);
             ImGui::Separator();
             ImGui::Checkbox("korblox", &korblox_enabled);
 

@@ -148,6 +148,9 @@ namespace config {
         WriteEntry(f, "flight_enabled", flight_enabled);
         WriteEntry(f, "flight_keybind", flight_keybind);
         WriteEntry(f, "flight_value", flight_value);
+        WriteEntry(f, "click_teleport_enabled", click_teleport_enabled);
+        WriteEntry(f, "click_teleport_keybind", click_teleport_keybind);
+        WriteEntry(f, "click_teleport_distance", click_teleport_distance);
         WriteEntry(f, "noclip_enabled", noclip_enabled);
         WriteEntry(f, "noclip_keybind", noclip_keybind);
 
@@ -240,6 +243,9 @@ namespace config {
             if (ReadLine(line, "flight_enabled", flight_enabled)) continue;
             if (ReadLine(line, "flight_keybind", flight_keybind)) continue;
             if (ReadLine(line, "flight_value", flight_value)) continue;
+            if (ReadLine(line, "click_teleport_enabled", click_teleport_enabled)) continue;
+            if (ReadLine(line, "click_teleport_keybind", click_teleport_keybind)) continue;
+            if (ReadLine(line, "click_teleport_distance", click_teleport_distance)) continue;
             if (ReadLine(line, "noclip_enabled", noclip_enabled)) continue;
             if (ReadLine(line, "noclip_keybind", noclip_keybind)) continue;
 
