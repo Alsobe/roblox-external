@@ -92,6 +92,16 @@ inline int flight_keybind = 0;
 inline float flight_value = 70.0f;
 inline bool flight_hold_mode = false;   // false = toggle (like the lua script)
 
+inline bool fov_changer_enabled = false;
+inline float fov_value = 70.0f;
+
+// ---- ui customisation (ui page) ----
+inline float ui_transparency = 6.0f;
+inline bool  ui_rounded_corners = false;
+inline float ui_corner_radius = 0.0f;
+inline bool  ui_rainbow = false;
+inline float ui_accent_color[3] = { 0.78f, 0.08f, 0.08f };
+
 inline bool infinite_jump_enabled = false;
 inline float infinite_jump_power = 50.0f;
 

@@ -199,6 +199,33 @@ namespace ui {
 }
 
 void RenderMenu() {
+    // live UI customisation (ui page)
+    {
+        ImGuiStyle& st = ImGui::GetStyle();
+        float r = ui_rounded_corners ? ui_corner_radius : 0.0f;
+        st.WindowRounding = r;
+        st.ChildRounding  = r;
+        st.FrameRounding  = r;
+        st.PopupRounding  = r;
+
+        if (ui_rainbow) {
+            float t = (float)ImGui::GetTime() * 0.25f;
+            ImGui::ColorConvertHSVtoRGB(t - (long)t, 1.0f, 1.0f,
+                                        ui_accent_color[0], ui_accent_color[1], ui_accent_color[2]);
+        }
+
+        ImVec4 accent(ui_accent_color[0], ui_accent_color[1], ui_accent_color[2], 1.0f);
+        st.Colors[ImGuiCol_Border]          = ImVec4(accent.x, accent.y, accent.z, 0.55f);
+        st.Colors[ImGuiCol_CheckMark]       = accent;
+        st.Colors[ImGuiCol_SliderGrabActive]= accent;
+        st.Colors[ImGuiCol_HeaderActive]    = accent;
+        st.Colors[ImGuiCol_SeparatorActive] = accent;
+
+        ImVec4 bg = st.Colors[ImGuiCol_WindowBg];
+        bg.w = 1.0f - (ui_transparency / 100.0f);
+        st.Colors[ImGuiCol_WindowBg] = bg;
+    }
+
     // start at a comfortable size, stay freely resizable, and never let it be
     // dragged smaller than the tab bar needs
     ImGui::SetNextWindowSize(ImVec2(760.0f, 600.0f), ImGuiCond_FirstUseEver);
@@ -224,8 +251,7 @@ void RenderMenu() {
             ImGui::SetWindowPos(ImVec2(wp.x + delta.x, wp.y + delta.y));
         }
 
-        d->AddText(ImVec2(p.x + 2, p.y + 4), IM_COL32(240, 240, 245, 255), "PHETAMINE");
-        d->AddText(ImVec2(p.x + 2, p.y + 22), IM_COL32(160, 160, 170, 255), "roblox external");
+        d->AddText(ImVec2(p.x + 2, p.y + 12), IM_COL32(240, 240, 245, 255), "PHETAMINE");
 
         // minimize + close
         ImGui::SetCursorScreenPos(ImVec2(p.x + full - 70.0f, p.y + 6.0f));
@@ -242,8 +268,9 @@ void RenderMenu() {
 
     // ---- nav bar ----
     static int s_page = 0;
-    const char* kPages[] = { "aimbot", "esp", "chams", "misc", "world", "keybinds", "log", "debug", "config" };
-    ImGui::BeginChild("nav", ImVec2(0, 40), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_HorizontalScrollbar);
+    const char* kPages[] = { "aimbot", "esp", "misc", "world", "keybinds", "ui", "config", "debug" };
+    ImGui::BeginChild("nav", ImVec2(0, 40), false,
+                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     for (int i = 0; i < IM_ARRAYSIZE(kPages); ++i) {
         if (i) ImGui::SameLine(0.0f, 6.0f);
         if (ui::NavButton(kPages[i], s_page == i)) s_page = i;
@@ -309,7 +336,7 @@ void RenderMenu() {
             ImGui::Separator();
         }
 
-        if (s_page == 2) {
+        if (s_page == 1) {
             ui::Toggle("chams", &chams_enabled);
             if (chams_enabled) ImGui::ColorEdit4("chams color", chams_color);
             ImGui::Separator();
@@ -336,7 +363,7 @@ void RenderMenu() {
             }
         }
 
-        if (s_page == 3) {
+        if (s_page == 2) {
             ImGui::TextDisabled("set keys for these in the keybinds tab");
             ImGui::Separator();
             ui::Toggle("noclip", &noclip_enabled);
@@ -360,13 +387,16 @@ void RenderMenu() {
                 ImGui::TextDisabled("tap space in mid-air to jump again");
             }
             ImGui::Separator();
+            ui::Toggle("fov changer", &fov_changer_enabled);
+            if (fov_changer_enabled) ui::Slider("field of view", &fov_value, 20.0f, 120.0f);
+            ImGui::Separator();
             ui::Toggle("inventory checker", &inventory_checker_enabled);
             if (inventory_checker_enabled) ImGui::TextDisabled("hold the key with your cursor over a player");
             ImGui::Separator();
 
         }
 
-        if (s_page == 4) {
+        if (s_page == 3) {
             ui::Toggle("skybox changer", &skybox_changer_enabled);
             if (skybox_changer_enabled) {
                 ImGui::Combo("skybox", &skybox_type,
@@ -379,7 +409,7 @@ void RenderMenu() {
             }
         }
 
-        if (s_page == 5) {
+        if (s_page == 4) {
             ImGui::TextDisabled("click a bind then press any key or mouse button");
             ImGui::Separator();
 
@@ -406,7 +436,7 @@ void RenderMenu() {
 
         }
 
-        if (s_page == 6) {
+        if (s_page == 7) {
             if (ImGui::Button("clear", ImVec2(80, 0))) {
                 std::lock_guard<std::mutex> lock(g_log_mutex);
                 g_log_lines.clear();
@@ -488,7 +518,29 @@ void RenderMenu() {
 
         }
 
-        if (s_page == 8) {
+        if (s_page == 5) {
+            ui::Section("window");
+            ui::Slider("menu transparency", &ui_transparency, 0.0f, 90.0f, "%.0f%%");
+            ui::Toggle("rounded corners", &ui_rounded_corners);
+            if (ui_rounded_corners) ui::Slider("corner radius", &ui_corner_radius, 0.0f, 24.0f, "%.0f px");
+            ImGui::Dummy(ImVec2(0, 4));
+
+            ui::Section("accent");
+            ImGui::ColorEdit3("accent color", ui_accent_color);
+            ui::Toggle("rainbow accent", &ui_rainbow);
+            ImGui::Dummy(ImVec2(0, 4));
+
+            ui::Section("reset");
+            if (ImGui::Button("reset to default theme", ImVec2(-1, 0))) {
+                ui_transparency = 6.0f;
+                ui_rounded_corners = false;
+                ui_corner_radius = 0.0f;
+                ui_rainbow = false;
+                ui_accent_color[0] = 0.78f; ui_accent_color[1] = 0.08f; ui_accent_color[2] = 0.08f;
+            }
+        }
+
+        if (s_page == 6) {
             static char config_name_buf[128] = "";
             static char rename_buf[128] = "";
             static std::vector<std::string> config_list = config::GetConfigList();

@@ -331,11 +331,14 @@ namespace features {
         skybox_written = true;
         std::snprintf(skybox_debug_msg, sizeof(skybox_debug_msg), "Skybox applied (%s)", k_skybox_names[skybox_type]);
 
+        // Invalidate AFTER writing, not before-and-then-revalidate. Setting these
+        // back to true immediately told the renderer the cached sky was still good,
+        // so it never re-uploaded the new textures.
         if (is_valid_address(render_view + Offsets::RenderView::SkyValid)) {
-            write<bool>(render_view + Offsets::RenderView::SkyValid, true);
+            write<bool>(render_view + Offsets::RenderView::SkyValid, false);
         }
         if (is_valid_address(render_view + Offsets::RenderView::LightingValid)) {
-            write<bool>(render_view + Offsets::RenderView::LightingValid, true);
+            write<bool>(render_view + Offsets::RenderView::LightingValid, false);
         }
 
         last_skybox_type = skybox_type;

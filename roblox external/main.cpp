@@ -15,6 +15,7 @@
 #include "features/walkspeed/walkspeed.h"
 #include "features/click_teleport/click_teleport.h"
 #include "features/infinite_jump/infinite_jump.h"
+#include "features/fov_changer/fov_changer.h"
 #include "features/inventory_checker/inventory_checker.h"
 #include "features/skybox_changer/skybox_changer.h"
 #include "features/hitbox_expander/hitbox_expander.h"
@@ -81,6 +82,7 @@ static void FeatureLoop() {
             if (walkspeed_enabled) features::RunWalkspeed();
             if (click_teleport_enabled) features::RunClickTeleport();
             if (infinite_jump_enabled) features::RunInfiniteJump();
+            if (fov_changer_enabled) features::RunFovChanger();
             if (skybox_changer_enabled) features::RunSkyboxChanger();
             if (hitbox_expander_enabled) features::RunHitboxExpander();
         }

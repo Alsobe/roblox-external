@@ -152,6 +152,12 @@ namespace config {
         WriteEntry(f, "click_teleport_distance", click_teleport_distance);
         WriteEntry(f, "infinite_jump_enabled", infinite_jump_enabled);
         WriteEntry(f, "infinite_jump_power", infinite_jump_power);
+        WriteEntry(f, "fov_changer_enabled", fov_changer_enabled);
+        WriteEntry(f, "fov_value", fov_value);
+        WriteEntry(f, "ui_transparency", ui_transparency);
+        WriteEntry(f, "ui_rounded_corners", ui_rounded_corners);
+        WriteEntry(f, "ui_corner_radius", ui_corner_radius);
+        WriteEntry(f, "ui_rainbow", ui_rainbow);
         WriteEntry(f, "flight_hold_mode", flight_hold_mode);
         WriteEntry(f, "inventory_checker_enabled", inventory_checker_enabled);
         WriteEntry(f, "inventory_checker_keybind", inventory_checker_keybind);
@@ -251,6 +257,12 @@ namespace config {
             if (ReadLine(line, "click_teleport_distance", click_teleport_distance)) continue;
             if (ReadLine(line, "infinite_jump_enabled", infinite_jump_enabled)) continue;
             if (ReadLine(line, "infinite_jump_power", infinite_jump_power)) continue;
+            if (ReadLine(line, "fov_changer_enabled", fov_changer_enabled)) continue;
+            if (ReadLine(line, "fov_value", fov_value)) continue;
+            if (ReadLine(line, "ui_transparency", ui_transparency)) continue;
+            if (ReadLine(line, "ui_rounded_corners", ui_rounded_corners)) continue;
+            if (ReadLine(line, "ui_corner_radius", ui_corner_radius)) continue;
+            if (ReadLine(line, "ui_rainbow", ui_rainbow)) continue;
             if (ReadLine(line, "flight_hold_mode", flight_hold_mode)) continue;
             if (ReadLine(line, "inventory_checker_enabled", inventory_checker_enabled)) continue;
             if (ReadLine(line, "inventory_checker_keybind", inventory_checker_keybind)) continue;

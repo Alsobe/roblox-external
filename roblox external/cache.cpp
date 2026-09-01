@@ -241,6 +241,24 @@ namespace cache {
             if (!c.is_valid()) continue;
             if (c.get_class_name() == "Humanoid") { lp.humanoid_address = c.address; break; }
         }
+
+        // Prefer resolving the root part straight off the humanoid instead of by
+        // name. Humanoid::HumanoidRootPart is a direct pointer, so this works even
+        // if a name lookup fails - flight / infinite jump / teleport all depend on
+        // this pointer being valid.
+        if (is_valid_address(lp.humanoid_address)) {
+            uintptr_t hrp_part = read<uintptr_t>(lp.humanoid_address + Offsets::Humanoid::HumanoidRootPart);
+            if (is_valid_address(hrp_part)) {
+                uintptr_t prim = read<uintptr_t>(hrp_part + Offsets::BasePart::Primitive);
+                if (is_valid_address(prim)) {
+                    lp.hrp_primitive = prim;
+                    vec3_t pos{};
+                    if (read_raw(prim + Offsets::Primitive::Position, &pos, sizeof(pos))) {
+                        lp.x = pos.x; lp.y = pos.y; lp.z = pos.z;
+                    }
+                }
+            }
+        }
         return lp;
     }
 

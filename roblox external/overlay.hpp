@@ -335,6 +335,54 @@ namespace discord_overlay
         Shell_NotifyIconA(NIM_DELETE, &nid);
     }
 
+    // ---- taskbar window ----------------------------------------------------
+    // The overlay itself is WS_EX_TOOLWINDOW (deliberately hidden from the
+    // taskbar so it never shows as a giant transparent window). To still give
+    // the app a real taskbar/alt-tab entry we own a second, tiny app window.
+    inline HWND g_taskbar_window = nullptr;
+    inline const char* g_taskbar_class = "RBXExternalApp";
+
+    inline LRESULT WINAPI taskbar_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    {
+        switch (msg)
+        {
+        case WM_CLOSE:
+            g_request_exit = true;
+            return 0;
+        case WM_SIZE:
+            // restoring from the taskbar re-opens the menu
+            if (wParam == SIZE_RESTORED) {
+                g_state.menu_open = true;
+                ShowWindow(hWnd, SW_MINIMIZE);
+            }
+            return 0;
+        }
+        return DefWindowProcA(hWnd, msg, wParam, lParam);
+    }
+
+    inline void create_taskbar_window()
+    {
+        WNDCLASSEXA wc{};
+        wc.cbSize        = sizeof(wc);
+        wc.lpfnWndProc   = taskbar_proc;
+        wc.hInstance     = g_hinstance;
+        wc.hIcon         = LoadIcon(nullptr, IDI_APPLICATION);
+        wc.hCursor       = LoadCursor(nullptr, IDC_ARROW);
+        wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+        wc.lpszClassName = g_taskbar_class;
+        RegisterClassExA(&wc);
+
+        g_taskbar_window = CreateWindowExA(
+            WS_EX_APPWINDOW,
+            g_taskbar_class, "roblox external",
+            WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT, CW_USEDEFAULT, 420, 200,
+            nullptr, nullptr, g_hinstance, nullptr);
+
+        if (g_taskbar_window)
+            ShowWindow(g_taskbar_window, SW_SHOWMINNOACTIVE);
+    }
+
     inline bool create_overlay()
     {
         // match roblox's physical pixels, otherwise windows scales our window on
@@ -589,6 +637,7 @@ namespace discord_overlay
         if (!init_device())    { LogLine("failed to create d3d11 device"); return; }
         if (!init_imgui())     { LogLine("failed to init imgui"); return; }
 
+        create_taskbar_window();
         add_tray_icon();
         LogLine("overlay ready - right click the tray icon to exit");
 
@@ -639,6 +688,7 @@ namespace discord_overlay
     inline void shutdown()
     {
         remove_tray_icon();
+        if (g_taskbar_window) { DestroyWindow(g_taskbar_window); g_taskbar_window = nullptr; }
         ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
