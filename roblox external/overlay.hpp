@@ -6,6 +6,7 @@
 #include <dxgi.h>
 #include <dwmapi.h>
 #include <chrono>
+#include <cstdio>
 
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_win32.h"
@@ -31,9 +32,29 @@ namespace discord_overlay
 
     inline State g_state;
 
+    // standalone overlay window bookkeeping
+    inline HINSTANCE   g_hinstance   = nullptr;
+    inline ATOM        g_class_atom  = 0;
+    inline const char* g_class_name  = "RBXOverlayWnd";
+    inline const char* g_window_name = "RBXOverlay";
+
     // menu toggle key. change this to whatever you want, e.g.
     // VK_HOME, VK_END, VK_INSERT, VK_DELETE, VK_PRIOR (page up), VK_F1 ... VK_F12
     constexpr int TOGGLE_KEY = VK_HOME;
+
+    // when click_through is true the overlay ignores the mouse entirely so you can
+    // keep playing. when the menu is open we drop WS_EX_TRANSPARENT so it can be used.
+    inline void set_clickthrough(bool click_through)
+    {
+        if (!g_state.window) return;
+
+        LONG_PTR ex = WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE;
+        if (click_through) ex |= WS_EX_TRANSPARENT;
+
+        SetWindowLongPtr(g_state.window, GWL_EXSTYLE, ex);
+        SetWindowPos(g_state.window, HWND_TOPMOST, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
 
     inline int VkToImGuiKey(int vk) {
         if (vk >= '0' && vk <= '9') return vk;
@@ -129,12 +150,12 @@ namespace discord_overlay
 
                 if (g_state.menu_open)
                 {
-                    SetWindowLong(g_state.window, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_TOOLWINDOW);
+                    set_clickthrough(false);
                     SetForegroundWindow(g_state.window);
                 }
                 else
                 {
-                    SetWindowLong(g_state.window, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
+                    set_clickthrough(true);
                 }
             }
 
@@ -181,17 +202,98 @@ namespace discord_overlay
         return 0;
     }
 
+    inline LRESULT WINAPI wnd_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+    {
+        if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+            return true;
+
+        switch (msg)
+        {
+        case WM_SIZE:
+            if (g_state.swap_chain && wParam != SIZE_MINIMIZED)
+            {
+                if (g_state.rtv) { g_state.rtv->Release(); g_state.rtv = nullptr; g_render_target = nullptr; }
+
+                g_state.swap_chain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam),
+                                                  DXGI_FORMAT_UNKNOWN, 0);
+
+                ID3D11Texture2D* back_buffer = nullptr;
+                g_state.swap_chain->GetBuffer(0, IID_PPV_ARGS(&back_buffer));
+                if (back_buffer)
+                {
+                    g_device->CreateRenderTargetView(back_buffer, nullptr, &g_state.rtv);
+                    g_render_target = g_state.rtv;
+                    back_buffer->Release();
+                }
+            }
+            return 0;
+
+        case WM_DESTROY:
+            g_state.window = nullptr;
+            PostQuitMessage(0);
+            return 0;
+
+        // never let the overlay steal focus by being clicked on
+        case WM_MOUSEACTIVATE:
+            return MA_NOACTIVATE;
+        }
+
+        return DefWindowProcA(hWnd, msg, wParam, lParam);
+    }
+
+    // creates our own transparent click-through overlay window covering every monitor.
+    // no discord required.
     inline bool create_overlay()
     {
-        g_state.window = FindWindowA("Chrome_WidgetWin_1", "Discord Overlay");
+        // match roblox's physical pixels, otherwise windows scales our window on
+        // high-dpi displays and the esp lands in the wrong place
+        SetProcessDPIAware();
+
+        g_hinstance = GetModuleHandleA(nullptr);
+
+        WNDCLASSEXA wc{};
+        wc.cbSize        = sizeof(wc);
+        wc.style         = CS_HREDRAW | CS_VREDRAW;
+        wc.lpfnWndProc   = wnd_proc;
+        wc.hInstance     = g_hinstance;
+        wc.hCursor       = LoadCursor(nullptr, IDC_ARROW);
+        wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+        wc.lpszClassName = g_class_name;
+
+        g_class_atom = RegisterClassExA(&wc);
+        if (!g_class_atom)
+            return false;
+
+        // cover the primary monitor starting at 0,0 - this matches the geometry the
+        // discord overlay had, so the esp screen-space math stays correct.
+        // (if roblox lives on a second monitor, switch these to SM_XVIRTUALSCREEN /
+        //  SM_YVIRTUALSCREEN / SM_CXVIRTUALSCREEN / SM_CYVIRTUALSCREEN)
+        int vx = 0;
+        int vy = 0;
+        int vw = GetSystemMetrics(SM_CXSCREEN);
+        int vh = GetSystemMetrics(SM_CYSCREEN);
+
+        g_state.window = CreateWindowExA(
+            WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
+            g_class_name, g_window_name,
+            WS_POPUP,
+            vx, vy, vw, vh,
+            nullptr, nullptr, g_hinstance, nullptr);
+
         if (!g_state.window)
             return false;
 
-        SetWindowLong(g_state.window, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
         SetLayeredWindowAttributes(g_state.window, RGB(0, 0, 0), 255, LWA_ALPHA);
 
-        MARGINS margin = { -1 };
+        // extend the dwm frame across the whole client area so the swapchain's
+        // alpha=0 clear actually shows through as real transparency
+        MARGINS margin = { -1, -1, -1, -1 };
         DwmExtendFrameIntoClientArea(g_state.window, &margin);
+
+        ShowWindow(g_state.window, SW_SHOWNOACTIVATE);
+        UpdateWindow(g_state.window);
+        SetWindowPos(g_state.window, HWND_TOPMOST, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
         return true;
     }
@@ -266,11 +368,11 @@ namespace discord_overlay
 
     inline void run()
     {
-        while (!create_overlay())
-            Sleep(2000);
+        if (!create_overlay()) { printf("failed to create overlay window\n"); return; }
+        if (!init_device())    { printf("failed to create d3d11 device\n"); return; }
+        if (!init_imgui())     { printf("failed to init imgui\n"); return; }
 
-        if (!init_device()) return;
-        if (!init_imgui())  return;
+        printf("overlay window created - press HOME to toggle the menu\n");
 
         CreateThread(nullptr, 0, input_thread, nullptr, 0, nullptr);
 
@@ -313,5 +415,8 @@ namespace discord_overlay
         if (g_state.swap_chain) g_state.swap_chain->Release();
         if (g_context)          g_context->Release();
         if (g_device)           g_device->Release();
+
+        if (g_state.window) { DestroyWindow(g_state.window); g_state.window = nullptr; }
+        if (g_class_atom)   { UnregisterClassA(g_class_name, g_hinstance); g_class_atom = 0; }
     }
 }

@@ -1,7 +1,7 @@
 # roblox external
 
 usermode external for roblox. 
-reads game memory from outside the process, renders esp / aimbot / chams / misc features using an imgui overlay on top of discord.
+reads game memory from outside the process, renders esp / aimbot / chams / misc features in its own standalone imgui overlay window.
 
 ## features
 
@@ -27,18 +27,16 @@ all included in the repo:
 
 - [imgui](https://github.com/ocornut/imgui) - rendering + ui
 - [clipper2](https://github.com/AngusJohnson/Clipper2) - used for mesh chams union clipping
-- [discord overlay](https://github.com/Alsobe/discord-overlay) - overlay system that hooks onto discords overlay window
 
 ### building
 
 1. open `roblox external.slnx` in visual studio
-2. make sure discord is running with overlay enabled
-3. build x64 release
-4. run the exe
+2. build x64 release
+3. run the exe as administrator
 
 ## how it works
 
-the overlay hooks onto discords overlay window (chrome_widgetwin_1 class) and renders with dx11 imgui. memory is read externally via `ReadProcessMemory` — nothing is injected into the roblox process.
+the overlay creates its own layered, click-through, always-on-top window and renders with dx11 imgui. no discord required. memory is read externally via `ReadProcessMemory` — nothing is injected into the roblox process.
 
 features run in a separate thread, esp/rendering happens on the overlay thread.
 
@@ -49,7 +47,8 @@ features run in a separate thread, esp/rendering happens on the overlay thread.
 
 ## notes
 
-- you need discord running with the overlay setting enabled for the overlay to find the window
+- run roblox in windowed or borderless mode - overlays cannot draw over exclusive fullscreen
+- run the exe as administrator so it can open a handle to roblox
 - this targets a specific roblox client version — offsets need to be updated if the version changes
 
 showcase:
